@@ -3,6 +3,8 @@ from django.contrib.auth.models import AbstractUser
 import uuid
 from datetime import datetime
 from django.conf import settings
+from django.db import transaction
+from django.utils import timezone
 
 '''
 - Tester de créer un user avec et sans les blank True
@@ -15,14 +17,29 @@ from django.conf import settings
 '''
 
 class User(AbstractUser):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4,unique=True)
     phone = models.CharField(max_length=20, unique=True, blank=False)
     country = models.CharField(max_length=100, blank=True)
     job = models.CharField(max_length=100, blank=True)
     income = models.CharField(max_length=100, blank=True)
     birthday = models.DateField(blank=True, null=True)
-    date_joined = models.DateTimeField(default=datetime.now)
+    date_joined = models.DateTimeField(default=timezone.now)
+
+
     email_verif = models.BooleanField(default=False)
+    phone_verif = models.BooleanField(default=False)
+    otp_verif = models.DateTimeField(default=timezone.datetime(2000, 1, 1, 1, 1, 1))
+
+    @transaction.atomic
+    def OTP_Set(self):
+        self.otp_verif = timezone.now() + timezone.timedelta(seconds=600)
+        self.save()
+
+    @transaction.atomic
+    def OTP_Status(self):
+        if self.otp_verif > timezone.now:
+            return False
+        return True
 
     class Meta:
         ordering = ['username']
