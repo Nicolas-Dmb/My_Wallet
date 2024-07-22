@@ -14,6 +14,7 @@ from django.utils import timezone
 - Configurer normalement le setting 
 - Se connecter 
 - refresh 
+- on véirife que les OTP Set et OTP Status fonctionne bien. 
 '''
 
 class User(AbstractUser):
@@ -29,6 +30,8 @@ class User(AbstractUser):
     email_verif = models.BooleanField(default=False)
     phone_verif = models.BooleanField(default=False)
     otp_verif = models.DateTimeField(default=timezone.datetime(2000, 1, 1, 1, 1, 1))
+    otp_key = models.IntegerField(blank=True)
+    otp_generate = models.DateTimeField(default=timezone.datetime(2000, 1, 1, 1, 1, 1))
 
     @transaction.atomic
     def OTP_Set(self):
