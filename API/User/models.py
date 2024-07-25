@@ -6,17 +6,6 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
-'''
-- Tester de créer un user avec et sans les blank True
-- Tester de créer un user avec deux fois la même Username/Email/Phone
-- Configurer les settings en faisant une erreur dans CurrencyList
-- Configurer les settings en faisant une erreur dans Colors 
-- Configurer normalement le setting 
-- Se connecter 
-- refresh 
-- on véirife que les OTP Set et OTP Status fonctionne bien. 
-'''
-
 class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4,unique=True)
     phone = models.CharField(max_length=20, unique=True, blank=False)
@@ -30,7 +19,7 @@ class User(AbstractUser):
     email_verif = models.BooleanField(default=False)
     phone_verif = models.BooleanField(default=False)
     otp_verif = models.DateTimeField(default=timezone.datetime(2000, 1, 1, 1, 1, 1))
-    otp_key = models.IntegerField(blank=True)
+    otp_key = models.IntegerField(blank=True, null=True)
     otp_generate = models.DateTimeField(default=timezone.datetime(2000, 1, 1, 1, 1, 1))
 
     @transaction.atomic

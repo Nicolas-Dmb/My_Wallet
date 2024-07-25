@@ -1,29 +1,27 @@
 from django.shortcuts import render
+from django.db import transaction
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from .serializers import UserSerializer, SettingSerializer
 from .models import User, Setting
-from rest_framework.viewsets import ModelViewSet, APIView
+from rest_framework.viewsets import ModelViewSet
 from rest_framework import authentication, exceptions
 from rest_framework import generics, views, status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.core.mail import send_mail
 import pyotp
 from django.utils import timezone
 
-'''
-Test OTP : 
-- demande de code avec le mail 
-- demande de code sans être co et en étant co 
-- demande de code OTP en ayant un déjà validé
-- vérifier le code OTP après un délai trop long 
-- vérifier le bon et le mauvais code OTP 
-- Veifier le code otp alors que rien n'est transmis 
-- véirier avec un code qui contient des lettres 
-'''
-
 class UserViewset(ModelViewSet): 
     serializer_class=UserSerializer
+
+    def get_permissions(self):
+        if self.action == 'create':
+            self.permission_classes = [AllowAny]
+        else:
+            self.permission_classes = [IsAuthenticated]
+        return super().get_permissions()
 
     def get_queryset(self):
         return User.objects.filter(id=self.request.user.id)
@@ -33,8 +31,8 @@ class SettingViewset(ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = SettingSerializer
 
-    def get_queryset(self, request):
-        return Setting.objects.filter(user = request.user)
+    def get_queryset(self):
+        return Setting.objects.filter(user = self.request.user)
 
 class OTPAPIView(APIView): 
     permission_classes = [IsAuthenticated]
@@ -54,7 +52,7 @@ class OTPAPIView(APIView):
                     'Votre code OTP',
                     f'Votre code OTP est : {token}',
                     'securite@trackey.fr',
-                    [f'{request.user.email}'],
+                    [f'{user.email}'],
                     fail_silently=False,
                 )
                 # Stockage de la clé OTP dans le modèle utilisateur et de la date de mise à jour
@@ -66,7 +64,7 @@ class OTPAPIView(APIView):
             else : 
                 Response(status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({'Error':e},status=status.HTTP_400_BAD_REQUEST)
+            return Response({'Error':str(e)},status=status.HTTP_400_BAD_REQUEST)
 
 
     def post(self, request):
@@ -76,7 +74,7 @@ class OTPAPIView(APIView):
                 # Récupération de la clé OTP soumise par l'utilisateur
                 submitted_otp = request.data.get('otp')
                 if submitted_otp is None or not submitted_otp.isdigit(): 
-                    return Response({'error': 'code invalide'}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'error': 'Code invalide'}, status=status.HTTP_400_BAD_REQUEST)
                 # Récupération de la clé OTP associée à l'utilisateur
                 stored_otp = user.otp_key
                 valid_otp = user.otp_generate + timezone.timedelta(minutes=3)
@@ -99,8 +97,8 @@ class OTPAPIView(APIView):
                     # Clé OTP invalide : 
                     return Response({'error': 'code invalide'}, status=status.HTTP_400_BAD_REQUEST)
             else : 
-                Response(status=status.HTTP_200_OK)
+                return Response(status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({'Error':e},status=status.HTTP_400_BAD_REQUEST)
+            return Response({'Error':str(e)},status=status.HTTP_400_BAD_REQUEST)
 
 

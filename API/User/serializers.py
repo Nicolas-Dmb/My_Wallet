@@ -1,17 +1,6 @@
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
 from .models import User, Setting
-
-'''
-Test : 
-- envoyer setting avec autre que currency et color
-- envoyer avec des données valides
-User :
-- créer un compte puis le modifier
-- créer et modifier un compte avec un nom / un tel / un mail déjà enregistré
-- modifier un compte sans avoir de validation OTP
-- tester un get sur une liste User et une liste Setting
-'''
     
 class SettingSerializer(ModelSerializer): 
     class Meta: 
