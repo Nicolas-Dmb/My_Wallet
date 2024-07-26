@@ -6,6 +6,9 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
+def default_otp_time():
+    return timezone.now() - timezone.timedelta(seconds=600)
+
 class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4,unique=True)
     phone = models.CharField(max_length=20, unique=True, blank=False)
@@ -18,9 +21,9 @@ class User(AbstractUser):
 
     email_verif = models.BooleanField(default=False)
     phone_verif = models.BooleanField(default=False)
-    otp_verif = models.DateTimeField(default=timezone.datetime(2000, 1, 1, 1, 1, 1))
+    otp_verif = models.DateTimeField(default=default_otp_time)
     otp_key = models.IntegerField(blank=True, null=True)
-    otp_generate = models.DateTimeField(default=timezone.datetime(2000, 1, 1, 1, 1, 1))
+    otp_generate = models.DateTimeField(default=default_otp_time)
 
     @transaction.atomic
     def OTP_Set(self):
