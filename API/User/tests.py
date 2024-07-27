@@ -103,11 +103,11 @@ class TestUserAPI:
         user = User.objects.get(username=account_fixture['username'])
         assert user.username == account_fixture['username']
 
-    def test_user_login(self, api_client, register_user):
+    def test_user_login(self, api_client, register_user, account_fixture):
         token_url = reverse('token_obtain_pair')
         data = {
-            'username': register_user.username,
-            'password': register_user.password
+            'username': account_fixture['username'],
+            'password': account_fixture['password']
         }
         response = api_client.post(token_url, data, format='json')
         if response.status_code != 200: 
@@ -133,18 +133,63 @@ class TestUserAPI:
         assert user_data['last_name'] == register_user.last_name
         assert user_data['phone'] == register_user.phone
 
-    def test_access_unauthorized_route(self, api_client, user_token):
-        access_token = user_token['access']
-        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
-        # Assuming this route requires different authorization
-        listuser = reverse('user-list')
-        response = api_client.get(listuser)
-        assert response.status_code == 401
-'''
-#Création de compte invalides  
+    def test_only_one_user(self, api_client, account_fixture):
+        #On engegistre les deux users : 
+        register_url = reverse('user-list')
+        for account in account_fixture.values(): 
+            response = api_client.post(register_url, account_fixture[account], format='json')
+            print (response.data)
+            assert response.status_code == 201
+        #on se connect avec l'un puis l'autre
+        token_url = reverse('token_obtain_pair')
+        for account in account_fixture.values():
+            data = {
+                'username': account['username'],
+                'password': account['password']
+                }
+            response = api_client.post(token_url, data, format='json')
+            assert response.status_code == 200
+            access_token = response.data['access']
+             # on regarde si la requete renvoie que un ou deux users
+            api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+            listuser = reverse('user-list')
+            response = api_client.get(listuser)
+
+            assert response.status_code == 200
+            user_data = response.data
+            assert user_data['username'] == account['username']
+            assert user_data['email'] == account['email']
+            assert user_data['first_name'] == account['first_name']
+            assert user_data['last_name'] == account['last_name']
+            assert user_data['phone'] == account['phone']
+
+
+#Création de compte invalides + test_only_one_user que je vais intégrer ici en enregistrant les deux users de base qui sont corrects. 
 @pytest.fixture
 def failes_user():
     return {
+        'less_informations':{
+            "first_name": "Py",
+            "last_name": "Test",
+            "username": "PyTest",
+            "email": "nicolas.dambreville@epitech.eu",
+            "phone": "00000000",
+            "password": "12345Nano!",
+            "confirm_password": "12345Nano!"
+        },#enregistrement valide 
+        'all_informations':{
+            "first_name": "PyAll",
+            "last_name": "TestAll",
+            "username": "PyTestAll",
+            "email": "nicolas.all@epitech.eu",
+            "phone": "11111111",
+            "country": "france",
+            "job": "student",
+            "income": "0",
+            "birthday":"2000-12-20",
+            "password": "12345Nano!",
+            "confirm_password": "12345Nano!"
+        },#enregistrement valide 
         'same_first_name':{
             "first_name": "Py",
             "last_name": "Test1",
@@ -153,7 +198,7 @@ def failes_user():
             "phone": "00000001",
             "password": "12345Nano!",
             "confirm_password": "12345Nano!"
-        },
+        },#Erreur first_name similaire 
         'same_last_name':{
             "first_name": "Py1",
             "last_name": "Test",
@@ -162,7 +207,7 @@ def failes_user():
             "phone": "00000001",
             "password": "12345Nano!",
             "confirm_password": "12345Nano!"
-        },
+        },#Erreur lastName similaire 
         'same_username':{
             "first_name": "Py1",
             "last_name": "Test1",
@@ -171,7 +216,7 @@ def failes_user():
             "phone": "00000001",
             "password": "12345Nano!",
             "confirm_password": "12345Nano!"
-        }, 
+        }, #Erreur Username Similaire 
         'same_email':{
             "first_name": "Py1",
             "last_name": "Test1",
@@ -180,7 +225,7 @@ def failes_user():
             "phone": "00000001",
             "password": "12345Nano!",
             "confirm_password": "12345Nano!"
-        },
+        },#erreur email similaire 
         'same_phone':{
             "first_name": "Py1",
             "last_name": "Test1",
@@ -189,7 +234,7 @@ def failes_user():
             "phone": "00000000",
             "password": "12345Nano!",
             "confirm_password": "12345Nano!"
-        },
+        },#erreur tel similaire 
         'incorrect_confirm_password':{
             "first_name": "Py1",
             "last_name": "Test1",
@@ -198,8 +243,8 @@ def failes_user():
             "phone": "00000001",
             "password": "12345Nano!",
             "confirm_password": "12345Nano"
-        },
-        'unsafe_password':{
+        },#erreur confirm password incorrect 
+        'unsafe_password_1':{
             "first_name": "Py1",
             "last_name": "Test1",
             "username": "PyTest1",
@@ -207,8 +252,8 @@ def failes_user():
             "phone": "00000001",
             "password": "1234",
             "confirm_password": "12345"
-        },
-        'unsafe_password':{
+        },#erreur password insécurisé
+        'unsafe_password_2':{
             "first_name": "Py1",
             "last_name": "Test1",
             "username": "PyTest1",
@@ -216,6 +261,5 @@ def failes_user():
             "phone": "00000001",
             "password": "12345Nano!",
             "confirm_password": "12345Nano"
-        },
+        },#erreur password insécurisé
     }
-'''
