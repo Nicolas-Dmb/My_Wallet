@@ -21,9 +21,11 @@ class User(AbstractUser):
 
     email_verif = models.BooleanField(default=False)
     phone_verif = models.BooleanField(default=False)
+    # dit si la vérif de l'otp est valide 
     otp_verif = models.DateTimeField(default=default_otp_time)
+    # ces deux valeurs permettent de vérifier l'otp retourné par l'user et si toujours valide
     otp_key = models.IntegerField(blank=True, null=True)
-    otp_generate = models.DateTimeField(default=default_otp_time)
+    otp_generate = models.DateTimeField(default=default_otp_time) # détermine la limite pour taper le code à seconds=60) ici c'est juste la date de génération
 
     @transaction.atomic
     def OTP_Set(self):
@@ -32,9 +34,9 @@ class User(AbstractUser):
 
     @transaction.atomic
     def OTP_Status(self):
-        if self.otp_verif > timezone.now:
-            return False
-        return True
+        if self.otp_verif > timezone.now():
+            return True
+        return False
 
     class Meta:
         ordering = ['username']

@@ -178,3 +178,12 @@ SIMPLE_JWT = {
 }
 
 
+# Django Emails
+#EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+EMAIL_HOST = 'smtp.hostinger.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'securite@trackey.fr'
+EMAIL_HOST_PASSWORD = 'rGgK5#seXT@y7jQQMP4C'
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = 'securite@trackey.fr'

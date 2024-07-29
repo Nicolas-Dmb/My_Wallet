@@ -31,14 +31,17 @@ class UserSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         user = self.instance
-        if User.objects.filter(username=data['username']).exclude(id=user.id if user else None).exists():
+        if 'username' in data and User.objects.filter(username=data['username']).exclude(id=user.id if user else None).exists():
             raise serializers.ValidationError('Username already exists.')
-        if User.objects.filter(phone=data['phone']).exclude(id=user.id if user else None).exists():
+        if 'phone' in data and User.objects.filter(phone=data['phone']).exclude(id=user.id if user else None).exists():
             raise serializers.ValidationError('Phone number already exists.')
-        if User.objects.filter(email=data['email']).exclude(id=user.id if user else None).exists(): 
+        if 'email' in data and User.objects.filter(email=data['email']).exclude(id=user.id if user else None).exists():
             raise serializers.ValidationError('E-Mail already exists.')
-        if data['password'] != data['confirm_password']:
-            raise serializers.ValidationError({"password": "Password fields didn't match."})
+
+        if 'password' in data and 'confirm_password' in data:
+            if data['password'] != data['confirm_password']:
+                raise serializers.ValidationError('Passwords do not match.')
+
         return data
 
     def create(self, validated_data):
@@ -59,6 +62,6 @@ class UserSerializer(serializers.ModelSerializer):
         password = validated_data.pop('password', None)
         if password:
             instance.set_password(password)
-        
+    
         return super().update(instance, validated_data)
 
