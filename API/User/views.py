@@ -26,6 +26,11 @@ class UserViewset(ModelViewSet):
 
     def get_queryset(self):
         return User.objects.filter(id=self.request.user.id)
+    
+    def perform_create(self, serializer):
+        user = serializer.save()
+        # Créer les paramètres de l'utilisateur après la création de l'utilisateur
+        Setting.objects.create(user=user)
 
 
 class SettingViewset(ModelViewSet):

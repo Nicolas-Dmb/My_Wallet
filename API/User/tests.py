@@ -4,38 +4,33 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.utils import timezone
+from datetime import timedelta
 from django.test import TestCase
+from .models import Setting
+from rest_framework import status
 
 
 
 # models.py
 '''
 - Configurer les settings en faisant une erreur dans CurrencyList
-- Configurer les settings en faisant une erreur dans Colors 
-- Configurer normalement le setting 
-- on véirife que les OTP Set et OTP Status fonctionne bien. 
+- Configurer les settings en faisant une erreur dans Colors
+- Configurer normalement le setting
 '''
 #serializers.py
 '''
 Test : 
 - envoyer setting avec autre que currency et color
 - envoyer avec des données valides
+-vérifier que setting est configurer automatiquement à la création de l'user
 User :
-- créer un compte puis le modifier
 - créer et modifier un compte avec un nom / un tel / un mail déjà enregistré
-- modifier un compte sans avoir de validation OTP
 - tester un get sur une liste User et une liste Setting
 '''
 #views.py
 '''
 Test OTP : 
-- demande de code avec le mail 
-- demande de code sans être co et en étant co 
-- demande de code OTP en ayant un déjà validé
-- vérifier le code OTP après un délai trop long 
-- vérifier le bon et le mauvais code OTP 
 - Veifier le code otp alors que rien n'est transmis 
-- véirier avec un code qui contient des lettres 
 '''
 
 User = get_user_model()
@@ -95,6 +90,14 @@ def account_fixture(request):
     return data[request.param]
 
 @pytest.fixture
+def setting_fixture():
+    data = {
+        'currency':'Dollar',
+        'nightMode':'False',
+        'color':'Gray',
+    }
+    return data
+@pytest.fixture
 def register_user(api_client, account_fixture):
     register_url = reverse('user-list')
     response = api_client.post(register_url, account_fixture, format='json')
@@ -125,7 +128,7 @@ def get_otp(api_client, register_user, user_token):
     assert response.status_code == 201 or response.status_code == 200
 
     if response.status_code == 200 : 
-        return True # pas besoin de post OTP
+        return True # pas besoin de post OTP car déjà valide
     else : 
         return False # besoin de post OTP
     
@@ -146,7 +149,8 @@ def post_otp(api_client, account_fixture, get_otp, user_token):
 @pytest.mark.django_db
 class TestUserAPI:
 
-    def test_user_registration(self, api_client, account_fixture):
+    def test_user_registration_setting(self, api_client, account_fixture):
+        #On enregistre un user puis on vérifie que le setting est configuré
         register_url = reverse('user-list')
         response = api_client.post(register_url, account_fixture, format='json')
         if response.status_code != 201: 
@@ -155,6 +159,8 @@ class TestUserAPI:
         assert User.objects.count() == 1
         user = User.objects.get(username=account_fixture['username'])
         assert user.username == account_fixture['username']
+        setting = Setting.objects.get(user = user.pk)
+        assert setting.currency == 'Euro'
 
     def test_user_login(self, api_client, register_user, account_fixture):
         token_url = reverse('token_obtain_pair')
@@ -198,6 +204,28 @@ class TestUserAPI:
         access_token = data['access']
 
         assert access_token != old_access_token
+
+    def test_setting_user(self, api_client, register_user, user_token, setting_fixture):
+        access_token = user_token['access']
+        user = register_user
+        
+        #On vérifie que le setting de base est en place : 
+        setting = Setting.objects.get(user=user.pk)
+        assert setting.color == 'Red'
+        assert setting.currency == 'Euro'
+
+        # Ajout de l'utilisateur dans le fixture
+        setting_fixture['user'] = user.pk
+
+        # Requete Post setting
+        url = reverse('setting-detail', kwargs={'pk': setting.pk})
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        response = api_client.patch(url, setting_fixture, format='json')
+        print(response.data)
+        assert response.status_code == 200
+        setting = Setting.objects.get(user=user.pk)
+        assert setting.color == 'Gray'
+        assert setting.currency == 'Dollar'
 
 
 @pytest.mark.django_db
@@ -266,18 +294,96 @@ class TestOTPAPI:
         assert user.email == "bkjk@gmail.com"
         assert user.phone == "007800000"
 
+    def test_timeout_otp(self, api_client, register_user, user_token, get_otp): 
+        # on saisie un otp qui est timeout
 
-        
-'''
-    def timeout_otp(self, api_client, register_user, user_token): 
-        # on verifie le retour puis si un seconde code otp est envoyé et que l'user le saisie correctement. 
+        # on fait une requête get et on récupère l'user et on le remet à jour
+        user = register_user
+        user = User.objects.get(username=user.username)
+        last_token = user.otp_key
 
-    def wrong_otp_key(self, api_client, register_user, user_token):
+        # on modifie la date de génération de l'opt
+        expired_time = timezone.now()-timedelta(minutes=50)
+        user.otp_generate = expired_time
+        user.save()
+
+        # on envoie le code OTP 
+        access_token = user_token['access']
+        otp_key = user.otp_key
+        payload = {'otp':otp_key}
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        url = reverse('OTP')
+        response = api_client.post(url, payload, format='json')
+        assert response.status_code == 408
+
+        #on refait get OTP 
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        url = reverse('OTP')
+        response = api_client.get(url)
+        assert response.status_code == 201
+
+        #on récupère le code otp envoyé et on verifie qu'il est différent de l'ancien et que le otp_generate à changé. 
+        user.refresh_from_db()
+        email = mail.outbox[1]
+        otp_code = int(email.body.split(': ')[1].strip())
+        assert last_token != otp_code
+        assert user.otp_generate != expired_time
+
+        #on renvoie le code 
+        payload = {'otp': otp_code}
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        response = api_client.post(url,payload,format='json')
+        assert response.status_code == 200
+
+    def test_wrong_otp_key(self, api_client, register_user, user_token, get_otp):
         #l'user tape un mauvais code otp puis saisie le bon otp 
 
-    def not_necessary_otp_key(self, api_client, register_user, user_token):
+        # on fait une requête get et on récupère l'user et on le remet à jour
+        user = register_user
+        user = User.objects.get(username=user.username)
+        last_token = user.otp_key
+
+        # on envoie le code OTP 
+        access_token = user_token['access']
+        payload = {'otp':'008'}
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        url = reverse('OTP')
+        response = api_client.post(url, payload, format='json')
+        assert response.status_code == 400
+        assert response.data['error'] == 'code invalide'
+
+        # On envoie le bon otp
+        access_token = user_token['access']
+        otp_key = user.otp_key
+        payload = {'otp':otp_key}
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        url = reverse('OTP')
+        response = api_client.post(url, payload, format='json')
+        assert response.status_code == 200
+
+    def test_not_necessary_otp_key(self, api_client, register_user, user_token, post_otp):
         # l'user demande une clé otp alors que son code est déjà valide 
-'''
+        # Get sur OTPAPIView
+        access_token = user_token['access']
+        url = reverse('OTP')
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        response = api_client.get(url)
+        assert response.status_code == 200
+
+    def test_modif_user_without_otp(self, api_client, register_user, user_token): 
+        # On modifie les infos de l'user sans validation OTP
+        url = reverse('user-detail', kwargs={'pk': register_user.pk})
+        access_token = user_token['access']
+        data = {
+            "username": "PyTe",
+            "email": "bkjk@gmail.com",
+            "phone": "007800000",
+        }
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        response = api_client.patch(url, data, format='json')
+        assert response.status_code == 400
+        assert not User.objects.filter(username = "PyTe").exists()
+
 
 
 #Création de compte invalides + test_only_one_user que je vais intégrer ici en enregistrant les deux users de base qui sont corrects. 
@@ -362,6 +468,25 @@ def failes_user():
         },#erreur password insécurisé
     }
 
+@pytest.fixture
+def failes_setting_currency():
+    # Données avec une devise invalide
+    data = {
+        'currency': 'Yen',  # Devise invalide
+        'nightMode': False,
+        'color': 'Gray',
+    }
+    return data
+
+@pytest.fixture
+def failes_setting_color():
+    # Données avec une couleur invalide
+    data = {
+        'currency': 'Euro',
+        'nightMode': False,
+        'color': 'Tomato',  # Couleur invalide
+    }
+    return data
 
 
 @pytest.mark.django_db
@@ -414,3 +539,29 @@ class TestfailUserAPI:
             assert user_data['first_name'] == failes_user[account]['first_name']
             assert user_data['last_name'] == failes_user[account]['last_name']
             assert user_data['phone'] == failes_user[account]['phone']
+        
+    def test_wrong_setting_user(self, api_client, register_user, user_token, failes_setting_color, failes_setting_currency):
+        access_token = user_token['access']
+        user = register_user
+        
+        # Ajout de l'utilisateur dans le fixture
+        failes_setting_color['user'] = user.pk
+        failes_setting_currency['user'] = user.pk
+
+        setting = Setting.objects.get(user=user.pk)
+
+        # Requete Post setting avec un mauvais color setting
+        url = reverse('setting-detail', kwargs={'pk': setting.pk})
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        response = api_client.patch(url, failes_setting_color, format='json')
+        # Vérifiez que la réponse est correcte
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'color' in response.data
+
+        # Requete Post setting avec un mauvais currency setting
+        url = reverse('setting-detail', kwargs={'pk': setting.pk})
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        response = api_client.patch(url, failes_setting_currency, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'currency' in response.data
+ 

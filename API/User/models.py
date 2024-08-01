@@ -62,7 +62,7 @@ class Setting(models.Model):
     currency = models.CharField(max_length=10, default=CurrencyList.Euro, choices=CurrencyList.choices, blank=False)
     nightMode = models.BooleanField(default=True, blank=False)
     color = models.CharField(max_length=20, default=Colors.Red, choices=Colors.choices, blank=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.user.username

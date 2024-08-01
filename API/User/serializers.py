@@ -5,13 +5,17 @@ from .models import User, Setting
 class SettingSerializer(ModelSerializer): 
     class Meta: 
         model=Setting
-        fields='__all__'
+        fields = ['currency', 'nightMode', 'color', 'user']
 
-    def validate(self,data): 
-        if data['currency'] not in Setting.CurrencyList: 
-            raise serializers.ValidationError('You must choose between Euro and Dollar.')
-        if data['color'] not in Setting.Colors:
-            raise serializers.ValidationError('You must choose between Gray/Red/Pink/Purple/Blue/Green/Brown/Yellow')
+    def validate(self, data): 
+        if data['currency'] not in dict(Setting.CurrencyList.choices):
+            raise serializers.ValidationError({
+                'currency': 'You must choose between Euro and Dollar.'
+            })
+        if data['color'] not in dict(Setting.Colors.choices):
+            raise serializers.ValidationError({
+                'color': 'You must choose between Gray, Red, Pink, Purple, Blue, Green, Brown, Yellow.'
+            })
         return data
 
 # deux autres choses à gérer : * verif user dans modif via clé OTP. 
