@@ -69,3 +69,12 @@ class UserSerializer(serializers.ModelSerializer):
     
         return super().update(instance, validated_data)
 
+# Serializer pour la réinitialisation du mot de passe
+class PasswordResetSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError("Passwords do not match.")
+        return data

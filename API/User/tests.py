@@ -9,7 +9,9 @@ from django.test import TestCase
 from .models import Setting
 from rest_framework import status
 
-
+'''
+- tester MPoublié 
+'''
 
 # models.py
 '''
@@ -71,7 +73,8 @@ def account_fixture(request):
             "email": "bklbjk@gmail.com",
             "phone": "00000000",
             "password": "12345Nano!",
-            "confirm_password": "12345Nano!"
+            "confirm_password": "12345Nano!",
+            "email_verif":"True",
         },
         'all_informations':{
             "first_name": "PyAll",
@@ -223,10 +226,131 @@ class TestUserAPI:
         response = api_client.patch(url, setting_fixture, format='json')
         print(response.data)
         assert response.status_code == 200
-        setting = Setting.objects.get(user=user.pk)
+        setting = Setting.objects.get(user=user.pk) 
         assert setting.color == 'Gray'
         assert setting.currency == 'Dollar'
 
+@pytest.mark.django_db
+class TestMPOublie:
+    def test_mpOublie(self, api_client, register_user):
+        user = register_user
+
+        #on assigne email-verif à l'user
+        user = User.objects.get(username=user.username)
+        user.email_verif = True
+        user.save()
+
+        #on fait une requête get sur MPOublié
+        url = reverse('MPOublie')
+        data = {'email':user.email}
+        response = api_client.post(url, data, format='json')
+
+        # vérifie les actions réalisées par views
+        assert response.status_code == 200
+        assert len(mail.outbox) == 1
+        email = mail.outbox[0]
+        assert email.subject == 'Mot de passe oublié'
+        assert email.to == [user.email]
+        # Good link : 
+        link = str(email.body.split('/')[1].strip())
+        # On vérifie que le code généré est valide et que le code stocké dans la db est aussi le même
+        user = User.objects.get(username=user.username)
+        assert user.token == link
+
+        #on saisi un nouveau mot de passe
+        data = {
+            'token':user.token,
+            'password':"12345Nano*",
+            "confirm_password": "12345Nano*"
+            }
+        response = api_client.patch(url, data, format='json')
+        assert response.status_code == 200
+        user = User.objects.get(username=user.username)
+        assert user.token == None
+        #ici la date doit être dépassée
+        assert user.date_token + timezone.timedelta(minutes=5) < timezone.now()
+
+        #on se connect avec le nouveau mot de passe
+        token_url = reverse('token_obtain_pair')
+        data = {
+            'username': user.username,
+            'password':"12345Nano*",
+        }
+        response = api_client.post(token_url, data, format='json')
+        if response.status_code != 200: 
+            print(response)
+        assert response.status_code == 200
+        assert 'access' in response.data
+        assert 'refresh' in response.data
+
+    def test_Timeout_mpoublie(self, api_client, register_user):
+        user = register_user
+
+        #on assigne email-verif à l'user
+        user = User.objects.get(username=user.username)
+        user.email_verif = True
+        user.save()
+
+        #on fait une requête get sur MPOublié
+        url = reverse('MPOublie')
+        data = {'email':user.email}
+        response = api_client.post(url, data, format='json')
+
+        # vérifie les actions réalisées par views
+        assert response.status_code == 200
+        assert len(mail.outbox) == 1
+        email = mail.outbox[0]
+        assert email.subject == 'Mot de passe oublié'
+        assert email.to == [user.email]
+        # Good link : 
+        link = str(email.body.split('/')[1].strip())
+        # On vérifie que le code généré est valide et que le code stocké dans la db est aussi le même
+        user = User.objects.get(username=user.username)
+        assert user.token == link
+
+        #on fait dépasser le temps de réponse 
+        user = User.objects.get(username=user.username)
+        user.date_token = timezone.now()  -  timezone.timedelta(minutes=5)
+        user.save()
+
+        #on saisi un nouveau mot de passe
+        data = {
+            'token':user.token,
+            'password':"12345Nano*",
+            "confirm_password": "12345Nano*"
+            }
+        response = api_client.patch(url, data, format='json')
+        assert response.status_code == 408
+        user = User.objects.get(username=user.username)
+        assert user.token == None
+        #ici la date doit être dépassée
+        assert user.date_token +  timezone.timedelta(minutes=5) < timezone.now()
+
+        #on se connect avec le nouveau mot de passe
+        token_url = reverse('token_obtain_pair')
+        data = {
+            'username': user.username,
+            'password':"12345Nano!",
+        }
+        response = api_client.post(token_url, data, format='json')
+        if response.status_code != 200: 
+            print(response)
+        assert response.status_code == 200
+        assert 'access' in response.data
+        assert 'refresh' in response.data
+
+    def test_EmailNotVerif_mpOublie(self, api_client, register_user):
+        user = register_user
+
+        #on fait une requête get sur MPOublié
+        url = reverse('MPOublie')
+        data = {'email':user.email}
+        response = api_client.post(url, data, format='json')
+
+        # vérifie les actions réalisées par views
+        assert response.status_code == 401
+        assert len(mail.outbox) == 0
+        
 
 @pytest.mark.django_db
 class TestOTPAPI:
@@ -286,7 +410,6 @@ class TestOTPAPI:
         }
         api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
         response = api_client.patch(url, data, format='json')
-        print(response.content)
         assert response.status_code == 200
         assert User.objects.filter(username = "PyTe").exists()
         user = User.objects.get(username = "PyTe")

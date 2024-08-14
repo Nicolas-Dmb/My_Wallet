@@ -26,6 +26,9 @@ class User(AbstractUser):
     # ces deux valeurs permettent de vérifier l'otp retourné par l'user et si toujours valide
     otp_key = models.IntegerField(blank=True, null=True)
     otp_generate = models.DateTimeField(default=default_otp_time) # détermine la limite pour taper le code à seconds=60) ici c'est juste la date de génération
+    #MP Oublié
+    token = models.CharField(max_length=200, blank=True, null=True)
+    date_token = models.DateTimeField(blank=True, null=True)
 
     @transaction.atomic
     def OTP_Set(self):

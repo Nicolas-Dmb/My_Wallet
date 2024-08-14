@@ -15,13 +15,13 @@ class Subject(models.Model):
     title = models.CharField(max_length=20, unique=True)
     description = models.TextField(max_length=200)
     created_date = models.DateTimeField(auto_now_add = True)
-    created_user = models.OneToOneField(settings.AUTH_USER_MODEL)
+    created_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING)
 
     def __str__(self): 
         return self.title
     
 class KeyWord(models.Model): 
-    subject = models.OneToOneField(Subject, related_name='keywrods', on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     keyword = models.CharField(max_length=50)
 
     def __str__(self): 
@@ -29,10 +29,10 @@ class KeyWord(models.Model):
 
 
 class message(models.Model): 
-    subject = models.OneToOneField(Subject, related_name='message', on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     text = models.TextField(max_length=1000)
     file = models.FileField(blank=True, null=True)
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     date = models.DateTimeField(auto_now_add = True)
 
     def __str__(self): 
@@ -43,8 +43,8 @@ class message(models.Model):
 
 
 class Favoris(models.Model): 
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    subject = models.ForeignKey(Subject, related_name='message', on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.subject + '/' + self.user

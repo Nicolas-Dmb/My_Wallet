@@ -4,7 +4,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from rest_framework import routers
  
-from User.views import UserViewset, SettingViewset, OTPAPIView
+from User.views import UserViewset, SettingViewset, OTPAPIView, MPOublieAPIView
  
 
 router = routers.SimpleRouter()
@@ -19,6 +19,7 @@ urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/otp/', OTPAPIView.as_view(), name='OTP'),
+    path('api/mpoublie/', MPOublieAPIView.as_view(), name='MPOublie'),
 ]
 
 
