@@ -9,9 +9,6 @@ from django.test import TestCase
 from .models import Setting
 from rest_framework import status
 
-'''
-- tester MPoublié 
-'''
 
 # models.py
 '''
@@ -112,7 +109,7 @@ def register_user(api_client, account_fixture):
 def user_token(api_client, account_fixture):
     token_url = reverse('token_obtain_pair')
     data = {
-        'username': account_fixture['username'],
+        'email': account_fixture['email'],
         'password': account_fixture['password']
     }
     response = api_client.post(token_url, data, format='json')
@@ -168,7 +165,7 @@ class TestUserAPI:
     def test_user_login(self, api_client, register_user, account_fixture):
         token_url = reverse('token_obtain_pair')
         data = {
-            'username': account_fixture['username'],
+            'email': account_fixture['email'],
             'password': account_fixture['password']
         }
         response = api_client.post(token_url, data, format='json')
@@ -273,7 +270,7 @@ class TestMPOublie:
         #on se connect avec le nouveau mot de passe
         token_url = reverse('token_obtain_pair')
         data = {
-            'username': user.username,
+            'email': user.email,
             'password':"12345Nano*",
         }
         response = api_client.post(token_url, data, format='json')
@@ -329,7 +326,7 @@ class TestMPOublie:
         #on se connect avec le nouveau mot de passe
         token_url = reverse('token_obtain_pair')
         data = {
-            'username': user.username,
+            'email': user.email,
             'password':"12345Nano!",
         }
         response = api_client.post(token_url, data, format='json')
@@ -640,7 +637,7 @@ class TestfailUserAPI:
         token_url = reverse('token_obtain_pair')
         for account in accounts:
             data = {
-                'username': failes_user[account]['username'],
+                'email': failes_user[account]['email'],
                 'password': failes_user[account]['password']
                 }
             response = api_client.post(token_url, data, format='json')
