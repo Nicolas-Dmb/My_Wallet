@@ -5,7 +5,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework import routers
  
 from User.views import UserViewset, SettingViewset, OTPAPIView, MPOublieAPIView
-from Community.views import SubjectMessagesAPIView, SubjectViewSet, CreateSubjectAPIView, FavoriAPIView, MessageAPIView
+from Community.views import SubjectMessagesAPIView, SubjectViewSet, CreateSubjectAPIView, FavoriAPIView, MessageAPIView, GetCreateSubjectAPIView
 
 router = routers.SimpleRouter()
 
@@ -28,7 +28,8 @@ urlpatterns = [
     path('api/community/subjects/<int:subject_id>/messages/', SubjectMessagesAPIView.as_view(), name='subject-messages'),
     path('api/community/create_subject/', CreateSubjectAPIView.as_view(), name='create_subject'),
     path('api/community/favoris/', FavoriAPIView.as_view(), name='favoris_community'),
-    path('api/community/send/message/', MessageAPIView.as_view(), name='send_message'),
+    path('api/community/send/<int:subject_id>/message/', MessageAPIView.as_view(), name='send_message'),
+    path('api/community/ownsubjects/', GetCreateSubjectAPIView.as_view(), name='own-subjects'),
 ]
 
 

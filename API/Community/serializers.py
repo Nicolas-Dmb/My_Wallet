@@ -31,7 +31,7 @@ Je veux que ca retour :
             - user
             - date
     pour les favoris : 
-        - la liste des sujet
+        - la liste des sujets
             - titre
     '''
 class MessageSerializer(ModelSerializer):
@@ -39,12 +39,14 @@ class MessageSerializer(ModelSerializer):
 
     class Meta:
         model= Message
-        fields = ['text','file','username','date','subject']
+        fields = ['text','file','username','date']
 
     def create(self, validated_data):
-        message = Message.objects.create(**validated_data)
+        subject = validated_data.pop('subject')
+        message = Message.objects.create(subject=subject,**validated_data)
         message.subject.count_message()
         return message
+
 
 class SubjectListSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='created_user.username', read_only=True)
@@ -54,7 +56,7 @@ class SubjectListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Subject
-        fields = ['title', 'username', 'keywords', 'weekly_activity', 'description']
+        fields = ['id','title', 'username', 'keywords', 'weekly_activity', 'description']
         validators = [
             UniqueTogetherValidator(
                 queryset=Subject.objects.all(),
@@ -83,28 +85,29 @@ class SubjectListSerializer(serializers.ModelSerializer):
             KeyWord.objects.create(subject=subject, keyword=keyword)
 
         return subject
-        
+
+    def get_keywords(self, obj):
+        # Retourner les mots-clés associés au sujet
+        return [keyword.keyword for keyword in obj.keyword_set.all()]
+
     def get_weekly_activity(self, obj):
         return obj.know_subject_activity()
-    
+
 class KeyWordSerializer(ModelSerializer):
     class Meta:
         model= KeyWord
-        fields = ['subject','keyword']
+        fields = ['keyword']
+
+        def to_representation(self, instance):
+            return instance.keyword
     
 class SubjectDetailSerializer(ModelSerializer):
     username = serializers.CharField(source='created_user.username', read_only=True)
-    #keywords = serializers.SerializerMethodField()
 
     class Meta:
         model= Subject
         fields = ['title','description','username']
-    #je le bloque ainsi que de la ligne juste au dessus car je ne pense pas avoir besoin de keyword ici 
-'''
-    def get_keywords(self, obj):
-        # Retourne les mots-clés associés au sujet sous forme de liste
-        return [keyword.keyword for keyword in obj.keyword.all()]
-'''
+
 
 
 class FavoriSerializer(ModelSerializer):

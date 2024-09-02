@@ -57,18 +57,45 @@ class SubjectViewSet(viewsets.ReadOnlyModelViewSet):
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+
+        # Construction des résultats avec les mots-clés
+        result = []
+        for subject in serializer.data:
+            subject_instance = Subject.objects.get(id=subject['id'])
+            keywords = KeyWord.objects.filter(subject=subject_instance)
+            keywords_serializer = KeyWordSerializer(keywords, many=True)
+            
+            # Extraire uniquement les mots-clés dans une liste
+            keyword_list = [kw['keyword'] for kw in keywords_serializer.data]
+
+            # Ajouter les sujets et leurs mots-clés associés dans le résultat final
+            result.append({
+                'subject': subject,
+                'keywords': keyword_list
+            })
+
+        return Response(result)
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
+
+class GetCreateSubjectAPIView(APIView):
+    permisssion_classes = [IsAuthenticated]
+    serializer_class = SubjectListSerializer
+
+    def get(self, request):
+        user = request.user
+        subjects = Subject.objects.filter(created_user=user)
+        serializer = SubjectListSerializer(subjects, many=True)
+        return Response(serializer.data, status=200)
     
 # subject (Post, Get only)
 class CreateSubjectAPIView(APIView): 
     permission_classes = [IsAuthenticated]
     serializer_class = SubjectListSerializer
-
+    
     def post(self, request):
         serializer = SubjectListSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -88,7 +115,7 @@ class FavoriAPIView(APIView):
     
     def get(self,request):
         user = request.user
-        favoris = Favori.objects.get(user = user)
+        favoris = Favori.objects.filter(user = user)
         serializer = FavoriSerializer(favoris, many=True)
         return Response(serializer.data, status=200)
     
@@ -96,8 +123,7 @@ class FavoriAPIView(APIView):
 class MessageAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request): 
-        subject_id = request.data.get('subject_id')
+    def post(self, request, subject_id): 
         try:
             subject = Subject.objects.get(id=subject_id)
         except Subject.DoesNotExist:
