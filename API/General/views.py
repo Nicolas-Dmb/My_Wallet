@@ -1,18 +1,12 @@
 from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from .serializers import AssetDetailSerializer, AssetListSerializer
-from .models import Asset, OneYearValue, OldValue, Currency
+from .serializers import AssetDetailSerializer, AssetListSerializer, AssetCreateSerializer
+from .models import Asset, OneYearValue, OldValue
 from rest_framework.viewsets import ModelViewSet
-from rest_framework import authentication, exceptions
 from rest_framework import generics, views, status
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.utils import timezone
 from django.conf import settings
-from itsdangerous import URLSafeSerializer
-import requests
-from django.http import JsonResponse
 import openai
 import yfinance as yf
 
@@ -65,8 +59,9 @@ class AssetViewset(ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'retrieve': 
             return AssetDetailSerializer
-        elif self.action == 'list' or self.action == 'create':
+        elif self.action == 'list':
             return AssetListSerializer
+
     #si l'user clique sur un actif de son wallet suivie par yfinance 
     #ou sur un nouvelle asset dans la barre de recherche mais qui est déjà enregistré dans asset 
     def retrieve(self, request, *args, **kwargs):
@@ -84,10 +79,38 @@ class AssetViewset(ModelViewSet):
     #ou que l'user clic sur une vue de détail d'un asset non encore suivie
     #si l'user le détermine en favoris
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.data, status=201)
+        response = Asset.create_asset(self,request.data['ticker'])
 
+        if response == True:
+            try:
+                # Création des valeurs associées
+                response_OneYear = OneYearValue.create_OneYearValue(self,request.data['ticker'])
+                if response_OneYear == True :
+                    response_OldValue = OldValue.create_OldValue(self,request.data['ticker'])
+                
+                # Si l'une des créations échoue, supprimer l'asset et lever une erreur
+                if response_OneYear == False or response_OldValue == False:
+                    Asset.objects.get(ticker=request.data['ticker']).delete()
+                    return Response({"error": "Failed to create associated values"}, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Retourner l'asset créé avec les valeurs associées
+                asset = Asset.objects.get(ticker=request.data['ticker'])
+                serializer = AssetDetailSerializer(asset)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+            except Exception as e:
+                # Suppression de l'asset en cas d'exception et renvoi d'une erreur
+                Asset.objects.get(ticker=request.data['ticker']).delete()
+                return Response({"error": f"Error during asset creation: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        elif response == 'Asset already exist':
+            asset = Asset.objects.get(ticker=request.data['ticker'])
+            asset.maj_asset()
+            serializer = AssetDetailSerializer(asset)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        else:
+            return Response({"error": response}, status=status.HTTP_400_BAD_REQUEST)
 # il permettra via la barre de recherche d'obtenir d'autres subjections d'assets 
 # qui ne sont pas encore enregistrés dans Asset
 class SearchOtherAssetsAPIView(APIView):

@@ -35,6 +35,11 @@ class AssetListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Asset
         fields = ['ticker', 'company', 'type', 'country']
+
+class AssetCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Asset
+        fields = ['ticker']
         validators = [
             UniqueTogetherValidator(
                 queryset=Asset.objects.all(),
@@ -42,7 +47,6 @@ class AssetListSerializer(serializers.ModelSerializer):
                 message="Cet actif existe déjà"
             )
         ]
-
     def create(self, validated_data):
         ticker = validated_data['ticker']
         
@@ -69,6 +73,8 @@ class AssetListSerializer(serializers.ModelSerializer):
         elif response == 'Asset already exist':
             asset = Asset.objects.get(ticker=ticker)
             asset.maj_asset(ticker)
+            raise serializers.ValidationError(response)
+
             return Asset.objects.get(ticker=ticker)
         else:
             raise serializers.ValidationError(response)
@@ -83,4 +89,5 @@ Listasset
 create : 
 create_asset
 create_OneYearValue
-create_oldValue'''
+create_oldValue
+'''
