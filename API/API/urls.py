@@ -6,6 +6,7 @@ from rest_framework import routers
  
 from User.views import UserViewset, SettingViewset, OTPAPIView, MPOublieAPIView
 from Community.views import SubjectMessagesAPIView, SubjectViewSet, CreateSubjectAPIView, FavoriAPIView, MessageAPIView, GetCreateSubjectAPIView
+from General.views import SearchOtherAssetsAPIView, AssetViewset
 
 router = routers.SimpleRouter()
 
@@ -14,6 +15,8 @@ router.register('user', UserViewset, basename='user')
 router.register('setting', SettingViewset, basename='setting' )
 #Community
 router.register('subject', SubjectViewSet, basename='subject') #ReadOnly 
+#AssetViewset
+router.register('asset', AssetViewset, basename='asset')
 
 urlpatterns = [
     path('api/', include(router.urls)),
@@ -30,6 +33,8 @@ urlpatterns = [
     path('api/community/favoris/', FavoriAPIView.as_view(), name='favoris_community'),
     path('api/community/send/<int:subject_id>/message/', MessageAPIView.as_view(), name='send_message'),
     path('api/community/ownsubjects/', GetCreateSubjectAPIView.as_view(), name='own-subjects'),
+    #General
+    path('api/general/<str:name>/', SearchOtherAssetsAPIView.as_view(), name='search_other_assets')
 ]
 
 
