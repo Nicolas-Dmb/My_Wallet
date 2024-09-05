@@ -7,8 +7,11 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework import generics, views, status
 from rest_framework.views import APIView
 from django.conf import settings
-import openai
+from openai import OpenAI
 import yfinance as yf
+
+client = OpenAI(api_key=settings.CHATGPT_KEY)
+
 
 
 # Create your views here.
@@ -28,30 +31,36 @@ import yfinance as yf
 "une requete qui permet de rechercher dans yfinance elle permet de créer de nouveaux assets et à l'user de rechercher de nouveaux assets"
 
 def get_ticker(info):
-    openai.api_key = settings.Chatgpt_Key
 
     try:
-        completion = openai.Completion.create(
-            model="gpt-4", 
-            prompt=f"Write only the name of ticker in yfinance corresponding with this information: {info}. If any ticker corresponds, return them with spaces between; if none, return 'false'. If there is more than one ticker, return tickers separated by spaces.",
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",  # Assurez-vous que le modèle est correct
+            messages = [
+                {"role": "system", "content": "You are an assistant that helps find tickers for assets listed on yfinance."},
+                {
+                    "role": "user",
+                    "content": f"Find the ticker(s) in yfinance corresponding to this information(s): '{info}'. The information can refer to stocks, indices, ETFs, or cryptocurrencies, companys, ISIN and can be right in english or french. If no ticker matches, return 'false'. If multiple tickers match, return them separated by '/'. Only provide the tickers listed in yfinance without any additional information."
+                }
+                ],
             max_tokens=50,  # Augmente la limite pour gérer plusieurs tickers
             temperature=0.0  # Réduit la créativité pour des réponses plus précises
         )
-        
-        response_text = completion.choices[0].text.strip()
-        
+
+        if not response or not response.choices[0].message.content:
+            return "La requête à ChatGPT à échouée :"
+        response_text = response.choices[0].message.content.strip()
+
         # Vérifiez si la réponse est 'false'
         if response_text.lower() == 'false':
             return False
-        
+
         # Divisez les tickers par espace
-        tickers = response_text.split()
+        tickers = response_text.split('/')
         return tickers
-    
+
     except Exception as e:
-        print(f"Error: {e}")
-        return None
-    
+        return f"Error: La requête à ChatGPT à échouée : {e}"
+
 
 class AssetViewset(ModelViewSet): 
     queryset = Asset.objects.all()
@@ -61,6 +70,7 @@ class AssetViewset(ModelViewSet):
             return AssetDetailSerializer
         elif self.action == 'list':
             return AssetListSerializer
+        return AssetCreateSerializer
 
     #si l'user clique sur un actif de son wallet suivie par yfinance 
     #ou sur un nouvelle asset dans la barre de recherche mais qui est déjà enregistré dans asset 
@@ -69,42 +79,44 @@ class AssetViewset(ModelViewSet):
         #on met à jour l'asset et ses historiques
         instance.maj_asset()
         serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     #on créer l'asset à partir du moment ou l'user créer un nouveau asset pour son wallet (passe par wallet qui envoie vers asset)
     #ou que l'user clic sur une vue de détail d'un asset non encore suivie
     #si l'user le détermine en favoris
     def create(self, request, *args, **kwargs):
-        response = Asset.create_asset(self,request.data['ticker'])
+        ticker = request.data['ticker'].upper()
+        response = Asset.create_asset(self,ticker)
 
         if response == True:
             try:
                 # Création des valeurs associées
-                response_OneYear = OneYearValue.create_OneYearValue(self,request.data['ticker'])
-                if response_OneYear == True :
-                    response_OldValue = OldValue.create_OldValue(self,request.data['ticker'])
-                
+                response_OneYear = OneYearValue.create_OneYearValue(self,ticker)
+                if response_OneYear != True :
+                    return Response({"error": f"{response_OneYear}"}, status=status.HTTP_400_BAD_REQUEST)
+                response_OldValue = OldValue.create_OldValue(self,ticker)
+
                 # Si l'une des créations échoue, supprimer l'asset et lever une erreur
-                if response_OneYear == False or response_OldValue == False:
-                    Asset.objects.get(ticker=request.data['ticker']).delete()
-                    return Response({"error": "Failed to create associated values"}, status=status.HTTP_400_BAD_REQUEST)
-                
+                if response_OldValue == False:
+                    Asset.objects.get(ticker=ticker).delete()
+                    return Response({"error": f"{response_OldValue}"}, status=status.HTTP_400_BAD_REQUEST)
+
                 # Retourner l'asset créé avec les valeurs associées
-                asset = Asset.objects.get(ticker=request.data['ticker'])
+                asset = Asset.objects.get(ticker=ticker)
                 serializer = AssetDetailSerializer(asset)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
-            
+
             except Exception as e:
                 # Suppression de l'asset en cas d'exception et renvoi d'une erreur
-                Asset.objects.get(ticker=request.data['ticker']).delete()
-                return Response({"error": f"Error during asset creation: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
-        
+                Asset.objects.get(ticker=ticker).delete()
+                return Response({"error": f"Erreur lors de la création de {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
         elif response == 'Asset already exist':
-            asset = Asset.objects.get(ticker=request.data['ticker'])
+            asset = Asset.objects.get(ticker=ticker)
             asset.maj_asset()
             serializer = AssetDetailSerializer(asset)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -115,19 +127,31 @@ class AssetViewset(ModelViewSet):
 # qui ne sont pas encore enregistrés dans Asset
 class SearchOtherAssetsAPIView(APIView):
 
-    def get(self, request, format=None):
-
-        info = request.query_params.get('name')
-        if not info:
+    def get(self, request, name=None, format=None):
+        name = name.upper()
+        if not name:
             return Response({'error': 'le paramètre name est nécessaire'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        tickers = get_ticker(info)
+
+        tickers = get_ticker(name)
         if not tickers :
-            return Response({'error': 'aucun token correspondant'}, status=status.HTTP_400_BAD_REQUEST)
+            tickers = name
+        if isinstance(tickers, str):
+            tickers = [tickers]
+        if 'échouée' in tickers[0]: 
+            return Response({'error': f'{tickers}'}, status=status.HTTP_400_BAD_REQUEST)
         return_data = []
         for ticker in tickers : 
             ticker_info = yf.Ticker(ticker)
-            if ticker_info.info is None or ticker_info.history(period="1d").empty:
+            try:
+                info = ticker_info.info
+            except Exception as e:
+                # Gestion de l'erreur si la requête à yfinance échoue
+                return_data.append({
+                    'ticker': ticker,
+                    'error': f'Erreur lors de la récupération des données pour {ticker}: {str(e)}'
+                })
+                continue
+            if info.get('shortName')==None:
                 data = {
                     'ticker':ticker,
                     'error': 'No data available'
@@ -135,15 +159,16 @@ class SearchOtherAssetsAPIView(APIView):
             else : 
                 data = {
                     'ticker': ticker,
-                    'company': ticker_info.info('shortName',None),
-                    'type': ticker_info.info('quoteType',None),
-                    'country': ticker_info.info('country', None),
+                    'company': info.get('shortName',None),
+                    'type': info.get('quoteType',None),
+                    'country': info.get('country', None),
                 }
+            #je me demande juste si je ne dois pas aussi faire une requete sur le nom retourné par l'user au cas ou chatgpt m'orienterai vers une mauvaise direction
             return_data.append(data)
 
         return Response(return_data, status=200)
-            
-            
-        
+
+
+
 
 

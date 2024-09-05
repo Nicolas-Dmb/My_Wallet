@@ -68,6 +68,7 @@ class Asset(models.Model):
     last_value = models.FloatField()
     date_value = models.DateTimeField()
     market_cap = models.FloatField(null=True, blank=True)
+    isin_code =  models.IntegerField(null=True, blank=True)
     #trailing_return = models.FloatField(null=True, blank=True)
     #fee = models.FloatField(null=True, blank=True)
     #total_assets = models.FloatField(null=True, blank=True)  # Total des actifs en milliards ou millions
@@ -86,12 +87,11 @@ class Asset(models.Model):
             return True
         try :
             #on récupère les dernières données 
-            historical = OneYearValue.objects.filter(asset = self).latest("date")
-            data = yf.download(self.ticker, group_by='column',start=historical.date,end=timezone.now(), interval='1wk')
-            print(data.info)
+            data = yf.download(self.ticker, group_by='column',period='1d', interval='1d')
+            info = data.info
             # Vérifier si les données sont disponibles
-            if not data.info and data.history :
-                return False
+            if info.get('shortName')==None:
+                return "Asset not available in yfinance"
             #on vérifie la device retournée 
             currency = data.info.get('currency')
             rate = 1
@@ -106,7 +106,9 @@ class Asset(models.Model):
             self.beta = data.info('beta', None)
             self.currency = data.info('currency',None)
             self.save()
-            #On récupère toutes les données de data pour les ajouters à OneYearValue
+            #On récupère toutes les données de data pour les ajouters à OneYearValue par semaine 
+            historical = OneYearValue.objects.filter(asset = self).latest("date")
+            data = yf.download(self.ticker, group_by='column',start=historical.date,end=timezone.now(), interval='1wk')
             for date, value in data['Close'].items():
                 OneYearValue.objects.create(asset = self, date=date, value=value*rate)
             #On supprime les données de OneYearValue supérieur à un an 
@@ -118,8 +120,7 @@ class Asset(models.Model):
                 OldValue.objects.create(asset = self, date=date, value=value*rate)
             return True
         except Exception as e:
-            print(f"Erreur lors de la mise à jour de l'actif : {e}")
-            return False
+            return f"Erreur lors de la mise à jour de l'actif : {e}"
             
     @transaction.atomic
     def create_asset(self, ticker):
@@ -130,34 +131,28 @@ class Asset(models.Model):
         try:
             data = yf.Ticker(ticker)
             info = data.info
-
             # Vérifier si les données sont disponibles
-            if not info:
+            if info.get('shortName')==None:
                 return "Asset not available in yfinance"
             
             # Création de l'instance de l'Asset
             asset = Asset(
                 category='Crypto' if info.get('quoteType') == 'CRYPTOCURRENCY' else 'Bourse',
                 company=info.get('shortName', None),
-                ticker=ticker,
+                ticker=info.get('symbol'),
+                isin_code = info.get('isin', None),
                 currency=info.get('currency', None),
                 type=info.get('quoteType', None),
                 country=info.get('country', None),
                 sector=info.get('sector', None),
                 industry=info.get('industry', None),
                 market_cap=info.get('marketCap', None),
-                #trailing_return=info.get('trailingReturns', None),
-                #fee=info.get('annualReportExpenseRatio', None),
-                #total_assets=info.get('totalAssets', None),
-                #sector_weightings=info.get('sectorWeightings', None),
-                #holding_percentages=info.get('holdingPercentages', None),
-                #top_holdings=info.get('topHoldings', None),
                 beta=info.get('beta', None),
             )
 
             # Gestion de l'historique
             history = data.history(period="1d")
-            if not history.empty:
+            if history['Close'].iloc[-1] != None:
                 asset.last_value = history['Close'].iloc[-1]
                 asset.date_value = history.index[-1]
 
@@ -166,9 +161,7 @@ class Asset(models.Model):
             return True
         
         except Exception as e:
-            # Log l'erreur pour des diagnostics ultérieurs
-            print(f"Erreur lors de la création de l'asset : {e}")
-            return "Erreur lors de la création de l'asset"
+            return f"Erreur lors de la création de l'actif : {e}"
 
 
 
@@ -183,26 +176,23 @@ class OneYearValue(models.Model):
             try:
                 asset = Asset.objects.get(ticker=ticker)
             except Asset.DoesNotExist:
-                return "Asset does not exist"
+                return "Erreur lors de la création de l'asset 1"
             except Asset.MultipleObjectsReturned:
-                return "Multiple assets found with the same ticker, which should not happen"
+                return "Deux assets correspondents 1"
 
             if OneYearValue.objects.filter(asset=asset).exists():
-                return "OneYearValue already exists"
+                return "Ces données existent déjà 1"
             data = yf.download(ticker, group_by='column',start=timezone.now()-timedelta(days=365),end=timezone.now(), interval='1wk')
-            print(data)
             for date, value in data['Close'].items():
                 OneYearValue.objects.create(
                     asset = asset,
                     date = date,
                     value = value
-                )
-            print(OneYearValue.objects.filter(asset=asset))        
+                )       
             return True
         except Exception as e : 
             # Log l'erreur pour des diagnostics ultérieurs
-            print(f"Erreur lors de la creation de OneYearValue: {e}")
-            return False
+            return f"Erreur lors de la creation de OneYearValue: {e}"
 
 class OldValue(models.Model):
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE)
@@ -215,11 +205,11 @@ class OldValue(models.Model):
             try:
                 asset = Asset.objects.get(ticker=ticker)
             except Asset.DoesNotExist:
-                return "Asset does not exist"
+                return "Erreur lors de la création de l'asset 2"
             except Asset.MultipleObjectsReturned:
-                return "Multiple assets found with the same ticker, which should not happen"
+                return "Deux assets correspondents 2"
             if OldValue.objects.filter(asset = asset).exists(): 
-                return "OldValue already exists"
+                return "Ces données existent déjà 2"
             oneyearvalue = OneYearValue.objects.filter(asset = asset).earliest("date")
             data = yf.download(ticker, group_by='column',start='2000-01-01',end=oneyearvalue.date, interval='3mo')
             for date, value in data['Close'].items():
@@ -231,9 +221,7 @@ class OldValue(models.Model):
                     )
             return True
         except Exception as e : 
-            # Log l'erreur pour des diagnostics ultérieurs
-            print(f"Erreur lors de la creation de OldValue: {e}")
-            return False
+            return f"Erreur lors de la creation de OldValue: {e}"
 
 class Currency(models.Model):
     rate = models.DecimalField(max_digits=10, decimal_places=6)

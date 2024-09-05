@@ -194,6 +194,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
 #API Fixer : 
-Fixer_Key = '7f6381609f6b9c8749f61e1669d286cf'
+FIXER_KEY = '7f6381609f6b9c8749f61e1669d286cf'
 #API ChatGpt :
-Chatgpt_Key = 'sk-fJtjdVGkxWpicSGE-ubMbxDHB6yLeXXh6uaSUo0TygT3BlbkFJaRpbxLgXY1KDxNhF57TBi_17YuxBb8Q7K1Gc6QyygA'
+CHATGPT_KEY = 'sk-fJtjdVGkxWpicSGE-ubMbxDHB6yLeXXh6uaSUo0TygT3BlbkFJaRpbxLgXY1KDxNhF57TBi_17YuxBb8Q7K1Gc6QyygA'
+
+#A supprimer avant de mettre en production
+#USE_TZ = False
