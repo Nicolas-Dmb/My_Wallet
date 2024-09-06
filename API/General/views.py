@@ -77,9 +77,21 @@ class AssetViewset(ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         #on met à jour l'asset et ses historiques
-        instance.maj_asset()
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        response = instance.maj_asset()
+        #on traite les différents retours possibles
+        if isinstance(response, bool):
+            if response == False:
+                return Response({"error":"Impossible de mettre à jour l'actif"}, status=status.HTTP_400_BAD_REQUEST)
+            elif response == True:
+                serializer = self.get_serializer(instance)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+        elif isinstance(response, str):
+            if response == "asset doesn't exist":
+                return Response({"error":"l'actif n'existe pas"}, status=status.HTTP_404_NOT_FOUND)
+            elif "Erreur lors de la mise à jour de l'actif" in response : 
+                return Response({"error":f"{response}"}, status=status.HTTP_400_BAD_REQUEST)
+        #retour par défaut
+        return Response("Erreur dans la mise à jour de l'actif", status=status.HTTP_404_NOT_FOUND)
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -114,7 +126,8 @@ class AssetViewset(ModelViewSet):
                 # Suppression de l'asset en cas d'exception et renvoi d'une erreur
                 Asset.objects.get(ticker=ticker).delete()
                 return Response({"error": f"Erreur lors de la création de {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
-
+        elif response == "Asset not available in yfinance" :
+            return Response({"error":"actif inaccessible"}, status=status.HTTP_400_BAD_REQUEST)
         elif response == 'Asset already exist':
             asset = Asset.objects.get(ticker=ticker)
             asset.maj_asset()

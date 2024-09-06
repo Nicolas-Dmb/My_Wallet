@@ -87,11 +87,12 @@ class Asset(models.Model):
             return True
         try :
             #on récupère les dernières données 
-            data = yf.download(self.ticker, group_by='column',period='1d', interval='1d')
+            data = yf.Ticker(self.ticker)
             info = data.info
             # Vérifier si les données sont disponibles
-            if info.get('shortName')==None:
+            if not info or 'shortName' not in info:
                 return "Asset not available in yfinance"
+            history = data.history(period="1d")
             #on vérifie la device retournée 
             currency = data.info.get('currency')
             rate = 1
@@ -100,11 +101,10 @@ class Asset(models.Model):
                 if response : 
                     rate = Currency.objects.get(device = f"{currency}/{self.currency}").rate
             #on récupère la dernière donnée pour asset 
-            self.last_value=data['Close'].iloc[-1] * rate
-            self.date_value=data.index[-1]
-            self.market_cap = data.info('marketcap', None)
-            self.beta = data.info('beta', None)
-            self.currency = data.info('currency',None)
+            self.last_value = history['Close'].iloc[-1] * rate
+            self.date_value = history.index[-1]
+            self.market_cap = info.get('marketCap', None)
+            self.beta = info.get('beta', None)
             self.save()
             #On récupère toutes les données de data pour les ajouters à OneYearValue par semaine 
             historical = OneYearValue.objects.filter(asset = self).latest("date")
@@ -132,7 +132,7 @@ class Asset(models.Model):
             data = yf.Ticker(ticker)
             info = data.info
             # Vérifier si les données sont disponibles
-            if info.get('shortName')==None:
+            if not info or 'shortName' not in info:
                 return "Asset not available in yfinance"
             
             # Création de l'instance de l'Asset
@@ -157,9 +157,10 @@ class Asset(models.Model):
                 asset.date_value = history.index[-1]
 
             # Sauvegarde de l'instance Asset
-            asset.save()
-            return True
-        
+                asset.save()
+                return True
+            else : 
+                return False
         except Exception as e:
             return f"Erreur lors de la création de l'actif : {e}"
 
