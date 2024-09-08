@@ -90,6 +90,8 @@ class AssetViewset(ModelViewSet):
                 return Response({"error":"l'actif n'existe pas"}, status=status.HTTP_404_NOT_FOUND)
             elif "Erreur lors de la mise à jour de l'actif" in response : 
                 return Response({"error":f"{response}"}, status=status.HTTP_400_BAD_REQUEST)
+            elif response == "Currency error" : 
+                return Response({"error":"Erreur sur la mise à jour de la device"}, status=status.HTTP_400_BAD_REQUEST)
         #retour par défaut
         return Response("Erreur dans la mise à jour de l'actif", status=status.HTTP_404_NOT_FOUND)
 
@@ -136,6 +138,17 @@ class AssetViewset(ModelViewSet):
 
         else:
             return Response({"error": response}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Désactiver PUT et PATCH
+    def update(self, request, *args, **kwargs):
+        return Response({'error': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    #def partial_update(self, request, *args, **kwargs):
+        #return Response({'error': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    # Désactiver DELETE
+    def destroy(self, request, *args, **kwargs):
+        return Response({'error': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 # il permettra via la barre de recherche d'obtenir d'autres subjections d'assets 
 # qui ne sont pas encore enregistrés dans Asset
 class SearchOtherAssetsAPIView(APIView):

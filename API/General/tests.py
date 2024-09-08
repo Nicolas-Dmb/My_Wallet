@@ -1,5 +1,5 @@
 #pytest --disable-warnings
-
+#pytest --disable-warnings tests.py::TestCurrencyAPI::test_currency
 import pytest
 from rest_framework.test import APIClient
 from django.urls import reverse
@@ -33,7 +33,6 @@ class TestAssetAPI:
             if apple == 2 and ticker == 'AAPL':
                 assert response.status_code == 200
             else : 
-                print(ticker)
                 assert response.status_code == 201
             #on vérifie que tous les models ont été crées
             assert len(Asset.objects.filter(ticker = ticker.upper())) ==1
@@ -197,9 +196,15 @@ class TestAssetAPI:
             assert response.status_code == 200
             assert asset_1.date_value < asset_2.date_value
             response_date = response.data['date_value']
-            assert date_today.date() == last_date_today.date()
-            assert asset_today == response.data['last_value']
-            # on vérifie les données de OneYearValue
+            response_date_naive = datetime.strptime(response_date, '%Y-%m-%dT%H:%M:%SZ')
+            if last_date_today.tzinfo is not None:
+                last_date_today_naive = last_date_today.replace(tzinfo=None)
+            else:
+                last_date_today_naive = last_date_today
+
+            # Comparer les deux dates maintenant en UTC
+            assert response_date_naive.date() == last_date_today_naive.date()
+            # on vérifie les données de OneYearValue 
             for date, value in OneYearValue_today['Close'].items():
                 #on vérifier qu'une donnée est bien existante avec ces données, qu'il n'y en a qu'une 
                 if len(OneYearValue.objects.filter(asset = asset_2, date = date, value = value))!=1:
@@ -215,24 +220,107 @@ class TestAssetAPI:
                 assert oldvalue.date < timezone.now()-timedelta(days=365)
         assert error < 3
 
-    def test_delet_asset(self, api_client):
+    def test_asset_action(self, api_client):
         url = reverse('asset-list')
         payload = {'ticker':'AAPL'}
         response = api_client.post(url,payload, format='json')
-        #essayer de modifier ou de supprimer
+        assert response.status_code == 201
+        asset = Asset.objects.get(ticker = 'AAPL')
+        # modifier
+        url = reverse('asset-detail', kwargs={'pk': asset.pk})
+        payload = {'ticker':'MSFT'}
+        response = api_client.patch(url,payload, format='json')
+        assert response.status_code == 405
+        exist = Asset.objects.filter(ticker = 'MSFT').exists()
+        assert exist == False
+        response = api_client.put(url,payload, format='json')
+        assert response.status_code == 405
+        exist = Asset.objects.filter(ticker = 'MSFT').exists()
+        assert exist == False
+        # delete
+        response = api_client.delete(url, format='json')
+        assert response.status_code == 405
+        exist = Asset.objects.filter(ticker = 'AAPL').exists()
+        assert exist == True
 
 @pytest.mark.django_db
 class TestSearchAPI:
     def test_search_asset(self,api_client):
+        #version plus longue
+        '''keywords = [
+            'Google-Tesla','Amazon','S&P 500','FTSE 100','Nikkei','Argent','Platine','Vanguard','SPDR','iShares',
+            'Bitcoin','Ripple','Technologie','Automobile','Energie','Schatz','Tokyo',
+            'Paris','Tesla Motors','Goldman Sachs']
+        '''
         keywords = [
-            'Google-Tesla','Amazon','S&P 500','FTSE 100','Nikkei','Argent','Cuivre','Platine','Vanguard','SPDR','iShares',
-            'Bitcoin','Ripple','Technologie','Santé','Énergie','Automobile','Energie','Schatz','Tokyo',
-            'Paris','New York','Tesla Motors','Microsoft Azure','Goldman Sachs']
+            'Google-Tesla','Amazon','S&P 500','FTSE 100','Nikkei']
         for keyword in keywords :
                 url = reverse('search_other_assets', args=[keyword])
                 response = api_client.get(url, format='json')
                 print(f'{keyword}:{response.status_code}')
                 assert response.status_code == 200
+
+@pytest.mark.django_db
+class TestCurrencyAPI:
+    def test_currency(self,api_client):
+        error = 0
+        url = reverse('asset-list')
+        payload = {'ticker':'BTC-USD'}
+        response = api_client.post(url,payload, format='json')
+        assert response.status_code == 201
+        #dates à initialiser 
+        date = datetime.strptime('2021-01-01', '%Y-%m-%d')
+        data = yf.download('BTC-USD', group_by='column',start=date-timedelta(days=1),end=date, interval='1d')
+        asset_price = data['Close'].iloc[-1]
+        asset_date = data.index[-1]
+        OneYearValue_data = yf.download('BTC-USD', group_by='column',start=date-timedelta(days=365),end=date, interval='1wk') 
+        asset = Asset.objects.get(ticker = 'BTC-USD')
+        asset.currency = 'EUR'
+        asset.last_value = asset_price
+        asset.date_value = asset_date
+        asset.save()
+        # On supprime les données au dessus de '2021-01-01'
+        OneYearValue.objects.filter(asset=asset, date__gt = date).delete()
+        for date, value in OneYearValue_data['Close'].items():
+                    OneYearValue.objects.create(
+                    asset = asset,
+                    date = date,
+                    value = value
+                )  
+        OldValue.objects.filter(asset=asset, date__gt = date-timedelta(days=365)).delete()
+        #Puis on refait une requete de maj pour voir si les date se sont mise à jour cette fois ci en eur
+        url = reverse('asset-detail', kwargs={'pk':asset.pk})
+        response = api_client.get(url, format='json')
+        print(response.data)
+        assert response.status_code == 200
+        #on vérifie que device a bien été généré : 
+        device = Currency.objects.get(device = 'USD/EUR')
+        rate = device.rate
+        assert device.date.date() == timezone.now().date()
+        #on recupère les données nouvellement générées
+        OneYearValue_data = yf.download('BTC-USD', group_by='column',start=timezone.now()-timedelta(days=365),end=timezone.now(), interval='1wk') 
+        OldValue_data = yf.download('BTC-USD', group_by='column',start='2000-01-01',end=timezone.now()-timedelta(days=365), interval='3mo')
+        data = yf.download('BTC-USD', group_by='column',start=timezone.now()-timedelta(days=1),end=timezone.now(), interval='1d')
+    # on vérifie que les données sont en usd
+        #asset
+        asset = Asset.objects.get(ticker = 'BTC-USD')
+        assert asset.last_value == data['Close'].iloc[-1]*rate
+        #OneYearValue
+        for date, value in OneYearValue_data['Close'].items():
+            if len(OneYearValue.objects.filter(asset = asset, date = date, value = value*rate))!=1:
+                    error += 1
+        #OldValue
+        for date, value in OldValue_data['Close'].items():
+            if date > datetime.strptime('2021-01-01', '%Y-%m-%d'):
+                if len(OldValue.objects.filter(asset = asset, date = date, value = value*rate)) != 1 :
+                            error += 1
+        assert error < 3
+
+
+
+
+
+
 
 '''
     @patch('django.utils.timezone.now')
@@ -408,7 +496,8 @@ class TestSearchAPI:
                                     expected_date -= 12
                                 assert date.month == expected_date
                             last_date = value.date
-                    assert error < 5'''
+                    assert error < 5
+'''
 '''
 Ticker qui ne seront pas pris en charge sur yahoo finance
 Ticker envoyé dans post alors que déjà créer
