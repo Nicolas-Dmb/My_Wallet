@@ -1,5 +1,6 @@
 #pytest --disable-warnings
 #pytest --disable-warnings tests.py::TestCurrencyAPI::test_currency
+
 import pytest
 from rest_framework.test import APIClient
 from django.urls import reverse
@@ -13,7 +14,14 @@ from django.utils.dateparse import parse_datetime
 from unittest.mock import patch
 from django.utils.dateparse import parse_datetime
 import pytz
-
+'''
+Il me manque les tests suivants mais je pense qu'ils ne sont pas nécessaires : 
+    Asset : 
+        - vérifier le retour de données de vue de détail (car pour l'instant je vérifie que les données dans la db direct suite à la maj)
+        - vérifier les données retournées dans la vue de liste 
+        - vérifier le retour si une requete get detail est mauvaise
+        
+'''
 @pytest.fixture
 def api_client():
     return APIClient()
@@ -220,6 +228,8 @@ class TestAssetAPI:
                 assert oldvalue.date < timezone.now()-timedelta(days=365)
         assert error < 3
 
+
+
     def test_asset_action(self, api_client):
         url = reverse('asset-list')
         payload = {'ticker':'AAPL'}
@@ -242,6 +252,8 @@ class TestAssetAPI:
         assert response.status_code == 405
         exist = Asset.objects.filter(ticker = 'AAPL').exists()
         assert exist == True
+    
+
 
 @pytest.mark.django_db
 class TestSearchAPI:
@@ -320,186 +332,3 @@ class TestCurrencyAPI:
 
 
 
-
-
-'''
-    @patch('django.utils.timezone.now')
-    def test_with_frozen_time(self, api_client):
-        # Figer la date au 1er janvier 2020
-        utc = pytz.UTC
-        error = 0
-        now = timezone.now()
-        tickers = ['AAPL','slv']
-        for ticker in tickers :
-            date_2018_05_15 = datetime.strptime("2018-05-15", '%Y-%m-%d')
-            asset_2018_05_15 = yf.download(ticker, group_by='column',start=date_2018_05_15-timedelta(days=1),end='2018-05-15', interval='1d')
-            asset_2018_05_15 = asset_2018_05_15['Close'].iloc[-1]
-            OneYearValue_2018_05_15 = yf.download(ticker, group_by='column',start=date_2018_05_15-timedelta(days=365),end='2018-05-15', interval='1wk') 
-            OldValue_2018_05_15 = yf.download(ticker, group_by='column',start='2000-01-01',end=date_2018_05_15-timedelta(days=365), interval='3mo')
-            asset_1 = {}
-            date_2020_01_01 = datetime.strptime('2020-01-01', '%Y-%m-%d')
-            asset_2020_01_01 = yf.download(ticker, group_by='column',start=date_2020_01_01-timedelta(days=1),end='2020-01-01', interval='1d')
-            asset_2020_01_01 = asset_2020_01_01['Close'].iloc[-1]
-            OneYearValue_2020_01_01 = yf.download(ticker, group_by='column',start=date_2020_01_01-timedelta(days=365),end='2020-01-01', interval='1wk') 
-            OldValue_2020_01_01 = yf.download(ticker, group_by='column',start='2000-01-01',end=date_2020_01_01-timedelta(days=365), interval='3mo')
-            asset_2 = {}
-            date_today = timezone.now()
-            asset_today = yf.Ticker(ticker)
-            asset_today= asset_today.history(period="1d")
-            asset_today= asset_today['Close'].iloc[-1]
-            OneYearValue_today= yf.download(ticker, group_by='column',start=timezone.now()-timedelta(days=365),end=timezone.now(), interval='1wk') 
-            OldValue_today = yf.download(ticker, group_by='column',start='2000-01-01',end=timezone.now()-timedelta(days=365), interval='3mo')
-            asset_3 = {}
-
-            with patch('django.utils.timezone.now') as mock_now:
-                mock_now.return_value = datetime(2018, 5, 15, tzinfo=utc)
-                #with freeze_time(date_2018_05_15):
-                date = date_2018_05_15
-                assert timezone.now().date() == date.date()
-                assert timezone.now() != now
-                error = 0
-                #on créer l'asset
-                url = reverse('asset-list')
-                payload = {'ticker':ticker}
-                response = api_client.post(url,payload, format='json')
-                assert response.status_code == 201
-                # on fait une requete de maj pour voir si ca marche même quand ca ne met pas à jour
-                asset_1 = Asset.objects.get(ticker=ticker)
-                url = reverse('asset-detail', kwargs={'pk': asset_1.pk})
-                response = api_client.get(url, format='json')
-                assert response.status_code == 200
-                response_date = parse_datetime(response.data['date_value'])
-                # on verifie qu'il n'y a pas de changement et que les prix correspondent à 2018
-                assert asset_1.date_value.date() == response_date.date()
-                assert asset_1.last_value == response.data['last_value']
-                assert date_2018_05_15.date() == response_date.date()
-                assert asset_2018_05_15 == response.data['last_value']
-                # on vérifie les données de OneYearValue
-                last_date = None
-                for date, value in OneYearValue_2018_05_15['Close'].items():
-                    #on vérifier qu'une donnée est bien existante avec ces données, qu'il n'y en a qu'une 
-                    if len(OneYearValue.objects.filter(asset = asset_1, date = date, value = value))!=1:
-                        error += 1
-                    else :
-                        value = OneYearValue.objects.get(asset = asset_1, date = date, value = value)
-                        if last_date != None :
-                            #on vérifie que chaque données est bien espacée d'une semaine
-                            if last_date.isocalendar()[1]+1 == 53 : 
-                                last_date = 1
-                            else : 
-                                last_date = last_date.isocalendar()[1]+1
-                            assert last_date == value.date.isocalendar()[1]
-                        last_date = value.date
-                #On vérifie que OldValue est à jour
-                last_date = None
-                for date, value in OldValue_2018_05_15 ['Close'].items():
-                    #on vérifier qu'une donnée est bien existante avec ces données, qu'il n'y en a qu'une 
-                    if len(OldValue.objects.filter(asset = asset_1, date = date, value = value)) != 1 :
-                        error += 1
-                    else : 
-                        value = OldValue.objects.get(asset = asset_1, date = date, value = value)
-                        if last_date != None :
-                            #on vérifie que chaque données est bien espacée de 3 mois
-                            expected_date = last_date.month + 3
-                            if expected_date > 12 :
-                                expected_date -= 12
-                            assert date.month == expected_date
-                        last_date = value.date
-
-            with patch('django.utils.timezone.now') as mock_now:
-                mock_now.return_value = datetime(2020, 1, 1, tzinfo=utc)
-                #with freeze_time(date_2020_01_01):
-                date = date_2020_01_01
-                # on fait une requete de maj pour voir si ca marche même quand ca ne met pas à jour
-                url = reverse('asset-detail', kwargs={'pk': asset_1.pk})
-                response = api_client.get(url, format='json')
-                assert response.status_code == 200
-                asset_2 = Asset.objects.get(ticker=ticker)
-                assert asset_1.date_value < asset_2.date_value
-                response_date = response.data['date']
-                assert date_2020_01_01.date() == response_date.date()
-                assert asset_2020_01_01 == response.data['last_value']
-                # on vérifie les données de OneYearValue
-                last_date = None
-                for date, value in OneYearValue_2020_01_01['Close'].items():
-                    #on vérifier qu'une donnée est bien existante avec ces données, qu'il n'y en a qu'une 
-                    if len(OneYearValue.objects.filter(asset = asset_2, date = date, value = value))!=1:
-                        error += 1
-                    else :
-                        value = OneYearValue.objects.get(asset = asset_2, date = date, value = value)
-                        if last_date != None :
-                            #on vérifie que chaque données est bien espacée d'une semaine
-                            if last_date.isocalendar()[1]+1 == 53 : 
-                                last_date = 1
-                            else : 
-                                last_date = last_date.isocalendar()[1]+1
-                            assert last_date == value.date.isocalendar()[1]
-                        last_date = value.date
-
-                #On vérifie que OldValue est à jour
-                last_date = None
-                for date, value in OldValue_2020_01_01['Close'].items():
-                    #on vérifier qu'une donnée est bien existante avec ces données, qu'il n'y en a qu'une 
-                    if len(OldValue.objects.filter(asset = asset_2, date = date, value = value)) != 1 :
-                        error += 1
-                    else : 
-                        value = OldValue.objects.get(asset = asset_2, date = date, value = value)
-                        if last_date != None :
-                            #on vérifie que chaque données est bien espacée de 3 mois
-                            expected_date = last_date.month + 3
-                            if expected_date > 12 :
-                                expected_date -= 12
-                            assert date.month == expected_date
-                        last_date = value.date
- 
-            # On vérifie qu'on est à la date d'ajd
-            assert timezone.now().date() == now
-            #On remet à jour
-            url = reverse('asset-detail', kwargs={'pk': asset_2.pk})
-            response = api_client.get(url, format='json')
-            asset_3 = Asset.objects.get(ticker=ticker)
-            #on verifie l'asset mis à jour 
-            assert response.status_code == 200
-            assert asset_2.date_value < asset_3.date_value
-            response_date = response.data['date']
-            assert date_today.date() == response_date.date()
-            assert asset_today == response.data['last_value']
-            # on vérifie les données de OneYearValue
-            last_date = None
-            for date, value in OneYearValue_today['Close'].items():
-                #on vérifier qu'une donnée est bien existante avec ces données, qu'il n'y en a qu'une 
-                if len(OneYearValue.objects.filter(asset = asset_3, date = date, value = value))!=1:
-                    error += 1
-                else :
-                    value = OneYearValue.objects.get(asset = asset_3, date = date, value = value)
-                    if last_date != None :
-                        #on vérifie que chaque données est bien espacée d'une semaine
-                        if last_date.isocalendar()[1]+1 == 53 : 
-                            last_date = 1
-                        else : 
-                            last_date = last_date.isocalendar()[1]+1
-                        assert last_date == value.date.isocalendar()[1]
-                    last_date = value.date
-
-                    #On vérifie que OldValue est à jour
-                    last_date = None
-                    for date, value in OldValue_today['Close'].items():
-                        #on vérifier qu'une donnée est bien existante avec ces données, qu'il n'y en a qu'une 
-                        if len(OldValue.objects.filter(asset = asset_3, date = date, value = value)) != 1 :
-                            error += 1
-                        else : 
-                            value = OldValue.objects.get(asset = asset_3, date = date, value = value)
-                            if last_date != None :
-                                #on vérifie que chaque données est bien espacée de 3 mois
-                                expected_date = last_date.month + 3
-                                if expected_date > 12 :
-                                    expected_date -= 12
-                                assert date.month == expected_date
-                            last_date = value.date
-                    assert error < 5
-'''
-'''
-Ticker qui ne seront pas pris en charge sur yahoo finance
-Ticker envoyé dans post alors que déjà créer
-faire deux maj d'asset en moins d'un jour
-'''
