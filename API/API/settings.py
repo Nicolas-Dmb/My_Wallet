@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -21,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-6kztmg()eotofs&$#z(_&o-u*-z0)vt(k=#*g#+bf2=zy99ubj"
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -185,7 +188,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 EMAIL_HOST = 'smtp.hostinger.com'
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'securite@trackey.fr'
-EMAIL_HOST_PASSWORD = 'rGgK5#seXT@y7jQQMP4C'
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'securite@trackey.fr'
 
@@ -193,10 +196,10 @@ DEFAULT_FROM_EMAIL = 'securite@trackey.fr'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
-#API Fixer : 
-FIXER_KEY = '7f6381609f6b9c8749f61e1669d286cf'
+#API Fixer :
+FIXER_KEY = os.getenv("FIXER_KEY") 
 #API ChatGpt :
-CHATGPT_KEY = 'sk-fJtjdVGkxWpicSGE-ubMbxDHB6yLeXXh6uaSUo0TygT3BlbkFJaRpbxLgXY1KDxNhF57TBi_17YuxBb8Q7K1Gc6QyygA'
+CHATGPT_KEY = os.getenv("CHATGPT_KEY")
 
 #A supprimer avant de mettre en production
 #USE_TZ = False

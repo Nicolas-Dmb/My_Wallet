@@ -71,12 +71,6 @@ class Asset(models.Model):
     date_value = models.DateTimeField()
     market_cap = models.FloatField(null=True, blank=True)
     isin_code =  models.IntegerField(null=True, blank=True)
-    #trailing_return = models.FloatField(null=True, blank=True)
-    #fee = models.FloatField(null=True, blank=True)
-    #total_assets = models.FloatField(null=True, blank=True)  # Total des actifs en milliards ou millions
-    #sector_weightings = models.JSONField(null=True, blank=True)  # Répartition sectorielle, stockée en tant que JSON
-    #holding_percentages = models.JSONField(null=True, blank=True)  # Pourcentages de détention, stockée en tant que JSON
-    #top_holdings = models.JSONField(null=True, blank=True)  # Top 10 des avoirs, stockés en tant que JSON
     beta = models.FloatField(null=True, blank=True)  # Beta du fonds
 
     def __str__(self):
