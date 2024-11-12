@@ -8,6 +8,8 @@ from datetime import timedelta
 from django.test import TestCase
 from .models import Setting
 from rest_framework import status
+from User.tests import register_user,user_token
+from .models import Asset, Buy, Sells, Categories, Wallet, CryptoDetail, BourseDetail, CashDetail, RealEstate, RealEstateDetail, HistoricalPrice, HistoricalWallet, HistoricalCrypto, HistoricalBourse, HistoricalCash, HistoricalImmo
 
 
 
@@ -31,6 +33,16 @@ def buy():#Il faudra ajouter wallet
             "date_buy":"2024-07-12",
             "ticker":"AAPL",
         },
+        "unKnowErrorData":{
+            "currency":"USD",
+            "name":"EGLD",
+            "plateforme":"MAYAR",
+            "account":"",
+            "number_buy":"10",
+            "price_buy":"200",
+            "date_buy":"2023-01-12",
+            "ticker":"EGLD",
+        },
         "unKnow":{
             "currency":"USD",
             "name":"EGLD",
@@ -40,6 +52,11 @@ def buy():#Il faudra ajouter wallet
             "price_buy":"200",
             "date_buy":"2023-01-12",
             "ticker":"EGLD",
+            "type":"Altcoins",
+            "categories":"Crypto",
+            "country":"",
+            "sector":"",
+            "company":"",
         }
     }
 
@@ -200,7 +217,100 @@ def ModifCashDetail():
             "addremove":-1000,
         },
     }
+
+@pytest.fixture
+def NewBuy(api_client,buy,register_user,user_token):
+     #data à vérifier ensuite 
+        categoriesAvant = Categories.objects.filter(wallet=wallet, type='Bouse')
+        categoriesCryptoAvant =  Categories.objects.filter(wallet=wallet, type='Crypto')
+        
+        user = register_user
+        access_token = user_token['access']
+        wallet = Wallet.objects.filter(user=user)
+        url = reverse('buy_asset')
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        
+        list = ["API_Know","unKnow"]
+        for data in list:
+            response = api_client.post(url,buy[data],format='json')
+            assert response.status_code == 201
+
 #Création Buy et Création Sell (API_know)
+@pytest.mark.django_db
+class TestBuySellAPI:
+    def testPostBuy(api_client,buy,register_user,user_token):
+        #data à vérifier ensuite 
+        categoriesAvant = Categories.objects.filter(wallet=wallet, type='Bouse')
+        categoriesCryptoAvant =  Categories.objects.filter(wallet=wallet, type='Crypto')
+        
+        user = register_user
+        access_token = user_token['access']
+        wallet = Wallet.objects.filter(user=user)
+        url = reverse('buy_asset')
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        
+        list = ["API_Know","unKnow","unKnowErrorData"]
+        for data in list:
+            response = api_client.post(url,buy[data],format='json')
+
+            if data == "unKnow" or data == "API_Know":
+                assert response.status_code == 201
+
+                #on vérifie que asset, categorie et wallet a été créer  
+                wallet1 = Wallet.objects.filter(user=user)
+                assert Buy.objects.filter(ticker=buy[data]["ticker"],wallet=wallet).exists()
+                asset = Asset.objects.filter(ticker=buy[data]["ticker"],wallet=wallet)
+                if data == "unKnow":
+                    categoriesCryptoAprès = Categories.objects.filter(wallet=wallet, type='Crypto')
+                    assert categoriesCryptoAprès > categoriesCryptoAvant.amount
+                else :
+                    categoriesAprès = Categories.objects.filter(wallet=wallet, type='Bourse')
+                    assert categoriesAprès > categoriesAvant.amount
+
+                assert asset.number == buy[data]['number']
+                assert wallet1.amount > wallet.amount
+            else :
+                assert response.status_code == 400
+
+    def testPostSell(api_client,sell,NewBuy,register_user,user_token):
+        #data à vérifier ensuite 
+        categoriesAvant = Categories.objects.filter(wallet=wallet, type='Bouse')
+        categoriesCryptoAvant =  Categories.objects.filter(wallet=wallet, type='Crypto')
+        assetAAPL = Asset.objects.filter(ticker='AAPL',wallet=wallet)
+        assetEGLD =  Asset.objects.filter(ticker='EGLD',wallet=wallet)
+        
+        user = register_user
+        access_token = user_token['access']
+        wallet = Wallet.objects.filter(user=user)
+        url = reverse('sell_asset')
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        
+        list = ["API_Know","unKnow"]
+        for data in list:
+            response = api_client.post(url,sell[data],format='json')
+
+            assert response.status_code == 201
+
+            #on vérifie que asset, categorie et wallet a été créer  
+            wallet1 = Wallet.objects.filter(user=user)
+            assert Buy.objects.filter(ticker=sell[data]["ticker"],wallet=wallet).exists()
+            asset = Asset.objects.filter(ticker=sell[data]["ticker"],wallet=wallet)
+            if data == "unKnow":
+                categoriesCryptoAprès = Categories.objects.filter(wallet=wallet, type='Crypto')
+                assert categoriesCryptoAprès < categoriesCryptoAvant.amount
+            else :
+                categoriesAprès = Categories.objects.filter(wallet=wallet, type='Bourse')
+                assert categoriesAprès < categoriesAvant.amount
+            if data == "API_Know":
+                assert asset.number == assetAAPL.number-sell[data]['number']
+            else :
+                assert asset.number == assetEGLD.number-sell[data]['number']
+            assert wallet1.amount < wallet.amount
+
+
+
+
+
 #Création Buy et Création Sell (Not API_know)
 #Rachat d'un asset
 #Modif Buy et Sell (API_know)
@@ -211,11 +321,3 @@ def ModifCashDetail():
 #Modification CashDetail (dont le amount via une soustraction ou un augmentation si buy ou sel) => véirfier le stockage de HistoricalPrice et HistoricalWaller
 #Modification CashDetail (dont le amount ou il faut directement modifier le montant ) => véirfier le stockage de HistoricalPrice et HistoricalWaller
 #Supprimer le compte CashDetail
-#Obtenir le montant des categories 
-#Obtenir la list des assets
-#Obtenir la liste Actif/Passif 
-#Obtenir l'historique des transaction
-#Obtenir les revenus annualisés de l'immo
-#Obtenir le Momentum
-#Obtenir les données propre à un Asset
-#Obtenir les historiques de All, Crypto, Bourse, Cash ou Immo,
