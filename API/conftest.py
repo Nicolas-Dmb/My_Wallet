@@ -1,5 +1,10 @@
 import os
-import pytest
+import django
+from pytest import fixture
 
-def pytest_configure():
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'API.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "API.settings")
+
+@fixture(scope='session', autouse=True)
+def django_setup():
+    """Assure que Django est bien initialisé avant de lancer les tests."""
+    django.setup()
