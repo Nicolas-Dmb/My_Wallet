@@ -88,18 +88,20 @@ def sell():#Il faudra ajouter wallet
 
 
 @pytest.fixture(params=['API_Know1','unKnow1','unKnow2','unKnow3'])
-def modif(request):#Il faudra ajouter wallet
+def modif(request):
     data= {
         "API_Know1":{
             "currency":'EUR',
             "name":"apple",
             "plateforme":"Revolut",
             "account":"CT",
+            "ticker":"AAPL",
         },
         "unKnow1":{
             "currency":"USD",
             "name":"EGLD",
             "plateforme":"Xportal",
+            "ticker":"EGLD",
         },
         "unKnow2":{
             "currency":"USD",
@@ -112,6 +114,7 @@ def modif(request):#Il faudra ajouter wallet
         },
         "unKnow3":{ 
             "actual_price":"150",
+            "ticker":"EGLD",
         }
     }
     return data[request.param]
@@ -164,7 +167,7 @@ def NewRealEstate():# Vérifie que actual value se mette à jour en même temps
         },
         "Less_data":{
         "type":'Appartement',
-        "adresse":"120 rue Jean Jaures, Paris",
+        "adresse":"12 rue Jean Jaures, Paris",
         "buy_date":"2020-12-26",
         "buy_price":250000,
         "apport":10000,
@@ -177,6 +180,7 @@ def ModifRealEstate():# Vérifie que actual value se mette à jour en même temp
     return {
         "Full_data":{
         "adresse":"12 rue Jean Jaures, Paris",
+        "actual_value":300000,
         },
         "Less_data":{
         "loyer_annuel":10000,
@@ -185,6 +189,7 @@ def ModifRealEstate():# Vérifie que actual value se mette à jour en même temp
         "emprunt_costs":20000,
         "resteApayer":170000,
         "rate":2.2,
+        "actual_value":310000,
         }
     }
 @pytest.fixture
@@ -209,21 +214,23 @@ def NewCashDetail():
 @pytest.fixture
 def ModifCashDetail():
     return{
-        "LEP":{
+        "CSL_LEP":{
             "bank":"Societe Générale",
             "addremove":2000,
         },
         "PEA":{
             "addremove":-1000,
         },
+        "CTO":{
+            "bank":"CIC",
+            "account":"CTO",
+            "amount":3000,
+        },
     }
 
 @pytest.fixture
-def NewBuy(api_client,buy,register_user,user_token):
+def BuyFixture(api_client,buy,register_user,user_token):
      #data à vérifier ensuite 
-        categoriesAvant = Categories.objects.filter(wallet=wallet, type='Bouse')
-        categoriesCryptoAvant =  Categories.objects.filter(wallet=wallet, type='Crypto')
-        
         user = register_user
         access_token = user_token['access']
         wallet = Wallet.objects.filter(user=user)
@@ -234,12 +241,68 @@ def NewBuy(api_client,buy,register_user,user_token):
         for data in list:
             response = api_client.post(url,buy[data],format='json')
             assert response.status_code == 201
+            
+@pytest.fixture
+def PostCash(api_client,register_user,user_token,NewCashDetail):
+    Cash = []
+    user = register_user
+    access_token = user_token['access']
+    url = reverse('cash')
+    api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+    list = ["LEP","PEA","CT"]
+    for accounttype in list:
+        response = api_client.post(url, NewCashDetail[accounttype], format='json')
+        assert response.status_code == 201
+        wallet = Wallet.objects.get(user=user)
+        cashDetail=CashDetail.objects.filter(wallet=wallet,account=NewCashDetail[accounttype]["account"])
+        Cash.append(cashDetail)
+    return Cash
+
+@pytest.fixture
+def PostSell(api_client,sell,register_user,user_token):
+        user = register_user
+        access_token = user_token['access']
+        wallet = Wallet.objects.filter(user=user)
+        url = reverse('sell_asset')
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        
+        list = ["API_Know","unKnow"]
+        for data in list:
+            response = api_client.post(url,sell[data],format='json')
+            assert response.status_code == 201
+
+@pytest.fixture
+def testPostCash(api_client,register_user,user_token,NewCashDetail):
+        user = register_user
+        access_token = user_token['access']
+        url = reverse('cash-list')
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        list = ["LEP","PEA","CT"]
+        for accounttype in list:
+            response = api_client.post(url, NewCashDetail[accounttype], format='json')
+            assert response.status_code == 201
+
+@pytest.fixturedef
+def testRealEstateDetail(api_client,NewRealEstate,ModifRealEstate, register_user,user_token):
+        user = register_user
+        access_token = user_token['access']
+        list = ["Full_data","Less_data"]
+        url = reverse('maj_realEstate')
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        for data in list :
+            response = api_client.post(url,NewRealEstate[data],format='json')
+            assert response.status_code == 201
+            #Modif
+            url = reverse('maj_realEstate', kwargs={'pk': immo.id})
+            response = api_client.patch(url,ModifRealEstate[data],format='json')
+            assert response.status_code == 200
 
 #Création Buy et Création Sell (API_know)
 @pytest.mark.django_db
 class TestBuySellAPI:
+    # post puis delete 
     def testPostBuy(api_client,buy,register_user,user_token):
-        #data à vérifier ensuite 
+        # data à vérifier ensuite 
         categoriesAvant = Categories.objects.filter(wallet=wallet, type='Bouse')
         categoriesCryptoAvant =  Categories.objects.filter(wallet=wallet, type='Crypto')
         
@@ -262,17 +325,25 @@ class TestBuySellAPI:
                 asset = Asset.objects.filter(ticker=buy[data]["ticker"],wallet=wallet)
                 if data == "unKnow":
                     categoriesCryptoAprès = Categories.objects.filter(wallet=wallet, type='Crypto')
-                    assert categoriesCryptoAprès > categoriesCryptoAvant.amount
+                    assert categoriesCryptoAprès.amount > categoriesCryptoAvant.amount
                 else :
                     categoriesAprès = Categories.objects.filter(wallet=wallet, type='Bourse')
-                    assert categoriesAprès > categoriesAvant.amount
+                    assert categoriesAprès.amount > categoriesAvant.amount
 
                 assert asset.number == buy[data]['number']
                 assert wallet1.amount > wallet.amount
             else :
                 assert response.status_code == 400
+        #Delete
+        buy = Buy.objects.filter(ticker=buy["API_Know"]["ticker"],wallet=wallet)
+        url = reverse('delete_buy', kwargs={'pk': buy.id})
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        response = api_client.delete(url,format='json')
+        assert response.status_code == 204
+        assert Buy.objects.filter(ticker=buy["API_Know"]["ticker"],wallet=wallet).exist()==False
 
-    def testPostSell(api_client,sell,NewBuy,register_user,user_token):
+    #post puis delete 
+    def testPostSell(api_client,sell,BuyFixture,register_user,user_token):
         #data à vérifier ensuite 
         categoriesAvant = Categories.objects.filter(wallet=wallet, type='Bouse')
         categoriesCryptoAvant =  Categories.objects.filter(wallet=wallet, type='Crypto')
@@ -297,23 +368,156 @@ class TestBuySellAPI:
             asset = Asset.objects.filter(ticker=sell[data]["ticker"],wallet=wallet)
             if data == "unKnow":
                 categoriesCryptoAprès = Categories.objects.filter(wallet=wallet, type='Crypto')
-                assert categoriesCryptoAprès < categoriesCryptoAvant.amount
+                assert categoriesCryptoAprès.amount < categoriesCryptoAvant.amount
+                assert asset.number == assetEGLD.number-sell[data]['number']
             else :
                 categoriesAprès = Categories.objects.filter(wallet=wallet, type='Bourse')
-                assert categoriesAprès < categoriesAvant.amount
-            if data == "API_Know":
+                assert categoriesAprès.amount < categoriesAvant.amount
                 assert asset.number == assetAAPL.number-sell[data]['number']
-            else :
-                assert asset.number == assetEGLD.number-sell[data]['number']
             assert wallet1.amount < wallet.amount
+        #Delete
+        sell = Sells.objects.filter(ticker=buy["API_Know"]["ticker"],wallet=wallet)
+        url = reverse('delete_sell', kwargs={'pk': sell.id})
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        response = api_client.delete(url,format='json')
+        assert response.status_code == 204
+        assert Sells.objects.filter(ticker=buy["API_Know"]["ticker"],wallet=wallet).exist()==False
+        
 
+    # on rachète des actifs déjà existant
+    def testPostNewBuy(api_client,Newbuy, BuyFixture, register_user,user_token, buy):
+        #data à vérifier ensuite 
+        categoriesAvant = Categories.objects.filter(wallet=wallet, type='Bouse')
+        categoriesCryptoAvant =  Categories.objects.filter(wallet=wallet, type='Crypto')
+        
+        user = register_user
+        access_token = user_token['access']
+        wallet = Wallet.objects.filter(user=user)
+        url = reverse('buy_asset')
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        
+        list = ["API_Know","unKnow"]
+        for data in list:
+            response = api_client.post(url,Newbuy[data],format='json')
 
+            if data == "unKnow" or data == "API_Know":
+                assert response.status_code == 201
+
+                #on vérifie que asset, categorie et wallet a été créer  
+                wallet1 = Wallet.objects.filter(user=user)
+                assert Buy.objects.filter(ticker=Newbuy[data]["ticker"],wallet=wallet).exists()
+                asset = Asset.objects.filter(ticker=Newbuy[data]["ticker"],wallet=wallet)
+                if data == "unKnow":
+                    categoriesCryptoAprès = Categories.objects.filter(wallet=wallet, type='Crypto')
+                    assert categoriesCryptoAprès.amount > categoriesCryptoAvant.amount
+                else :
+                    categoriesAprès = Categories.objects.filter(wallet=wallet, type='Bourse')
+                    assert categoriesAprès.amount > categoriesAvant.amount
+
+                assert asset.number == Newbuy[data]['number']+ buy[data]['number']
+                assert wallet1.amount > wallet.amount
+
+    # on rachète des actifs déjà existant
+    def testPostNewBuy(api_client,Newbuy, BuyFixture, register_user,user_token, buy):
+        #data à vérifier ensuite 
+        categoriesAvant = Categories.objects.filter(wallet=wallet, type='Bouse')
+        categoriesCryptoAvant =  Categories.objects.filter(wallet=wallet, type='Crypto')
+        
+        user = register_user
+        access_token = user_token['access']
+        wallet = Wallet.objects.filter(user=user)
+        url = reverse('buy_asset')
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        
+        list = ["API_Know","unKnow"]
+        for data in list:
+            response = api_client.post(url,Newbuy[data],format='json')
+
+            if data == "unKnow" or data == "API_Know":
+                assert response.status_code == 201
+
+                #on vérifie que asset, categorie et wallet a été créer  
+                wallet1 = Wallet.objects.filter(user=user)
+                assert Buy.objects.filter(ticker=Newbuy[data]["ticker"],wallet=wallet).exists()
+                asset = Asset.objects.filter(ticker=Newbuy[data]["ticker"],wallet=wallet)
+                if data == "unKnow":
+                    categoriesCryptoAprès = Categories.objects.filter(wallet=wallet, type='Crypto')
+                    assert categoriesCryptoAprès.amount > categoriesCryptoAvant.amount
+                else :
+                    categoriesAprès = Categories.objects.filter(wallet=wallet, type='Bourse')
+                    assert categoriesAprès.amount > categoriesAvant.amount
+
+                assert asset.number == Newbuy[data]['number']+ buy[data]['number']
+                assert wallet1.amount > wallet.amount
+    
+    def testModifAsset(api_client, BuyFixture, modif, register_user,user_token, buy):
+        user = register_user
+        access_token = user_token['access']
+        url = reverse('maj_asset')
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        response = api_client.patch(url,modif,format='json')
+        assert response.status_code == 200
+
+    def testRealEstateDetail(api_client,NewRealEstate,ModifRealEstate, register_user,user_token):
+        user = register_user
+        access_token = user_token['access']
+        list = ["Full_data","Less_data"]
+        url = reverse('maj_realEstate')
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        for data in list :
+            response = api_client.post(url,NewRealEstate[data],format='json')
+            assert response.status_code == 201
+            immo = RealEstateDetail.objects.get(NewRealEstate[data]["adresse"])
+            assert immo.actual_value == NewRealEstate[data]["buy_price"]
+            #Modif
+            url = reverse('maj_realEstate', kwargs={'pk': immo.id})
+            response = api_client.patch(url,ModifRealEstate[data],format='json')
+            assert response.status_code == 200
+            immo = RealEstateDetail.objects.get(NewRealEstate[data]["adresse"])
+            assert ModifRealEstate[data]["actual_value"]==immo.actual_value
+    
+    def testPostCash(api_client,register_user,user_token,NewCashDetail):
+        user = register_user
+        access_token = user_token['access']
+        url = reverse('cash-list')
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        list = ["LEP","PEA","CT"]
+        for accounttype in list:
+            response = api_client.post(url, NewCashDetail[accounttype], format='json')
+            assert response.status_code == 201
+            wallet = Wallet.objects.get(user=user)
+            cashDetail=CashDetail.objects.filter(wallet=wallet,account=NewCashDetail[accounttype]["account"])
+            assert NewCashDetail[accounttype]["bank"]== cashDetail.bank
+            assert NewCashDetail[accounttype]["amount"]== cashDetail.amount
+    
+    def testModifCashDetail(api_client,register_user,user_token,ModifCashDetail,PostCash):
+        user = register_user
+        wallet = Wallet.objects.get(user=user)
+        access_token = user_token['access']
+        cashs = PostCash
+        for cash in cashs:
+            url = reverse('cash-detail', kwargs={'pk': cash.id})
+            api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+            response = api_client.patch(url, ModifCashDetail[cash], format='json')
+            assert response.status_code == 200
+            wallet = Wallet.objects.get(user=user)
+            cashDetail=CashDetail.objects.filter(wallet=wallet,account=NewCashDetail[cash]["account"])
+            assert NewCashDetail[cash]["bank"]== cashDetail.bank
+            if cash == "CSL_LEP" or cash == "PEA":
+                assert NewCashDetail[cash]["amount"]== cashDetail.amount+cashs[cash]["amount"]
+            else:
+                assert NewCashDetail[cash]["amount"]== cashDetail.amount
+            assert HistoricalWallet.objects.filter(cash=cash, value=cash.value).exists()
+            assert HistoricalCash.objects.filter(wallet=wallet, value=cash.value).exists()
+            # essayer de supprimer le fichier 
+            response = api_client.delete(url, format='json')
+            assert response.status_code == 204
 
 
 
 #Création Buy et Création Sell (Not API_know)
 #Rachat d'un asset
-#Modif Buy et Sell (API_know)
+#delete buy et sell  (API_know)
 #Modif Asset (Not API_know)
 #Creation RealEstateDetail(Vérifie que actual value se mette à jour en même temps)
 #Modification RealEstateDetail

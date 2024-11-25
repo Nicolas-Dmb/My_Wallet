@@ -7,7 +7,7 @@ from rest_framework import routers
 from User.views import UserViewset, SettingViewset, OTPAPIView, MPOublieAPIView
 from Community.views import SubjectMessagesAPIView, SubjectViewSet, CreateSubjectAPIView, FavoriAPIView, MessageAPIView, GetCreateSubjectAPIView
 from General.views import SearchOtherAssetsAPIView, AssetViewset
-from Wallet.views import BuyView, SellView, MajAsset,CashAccount, RealEstateView
+from Wallet.views import BuyView, SellView, MajAsset,CashAccount, RealEstateView, DeleteSellView, DeleteBuyView
 from Wallet.viewsGet import AmountCategories,ListAsset,ListActifPassif, historiqueAchatVente, RevenuAnnuelImmo, MomentumPF, AssetData, PerformanceGlobal
 
 router = routers.SimpleRouter()
@@ -42,8 +42,11 @@ urlpatterns = [
     #Wallet 
     path('api/wallet/buy/', BuyView.as_view(), name='buy_asset'), #POST Crypto et Bourse
     path('api/wallet/sell/', SellView.as_view(), name='sell_asset'), #POST Crypto et Bourse
+    path('api/wallet/delete/buy/<int:pk>/', DeleteBuyView.as_view(), name='delete_buy'), #Delete Buy
+    path('api/wallet/delete/sell/<int:pk>/', DeleteSellView.as_view(), name='delete_sell'), #Delete sell
     path('api/wallet/maj/', MajAsset.as_view(), name='maj_asset'), #PATCH Asset sur Crypto et Bourse
-    path('api/wallet/realestate/', RealEstateView.as_view(), name='maj_realEstate'), #post ou patch ImmoDetail
+    path('api/wallet/realestate/', RealEstateView.as_view(), name='new_realEstate'), #post ou patch ImmoDetail
+    path('api/wallet/realestate/<int:pk>/', RealEstateView.as_view(), name='maj_realEstate'), #post ou patch ImmoDetail
     path('api/wallet/amounts/<string:categorie>/', AmountCategories.as_view(), name='get_amount_of_categories'), #Get amount of categorie ['crypto','course','cash','all']
     path('api/wallet/list/<string:categorie>/', ListAsset.as_view(), name="get_list_asset"), #Get list of asset  ['crypto','course','cash','immo']
     path('api/wallet/actifpassif/<string:categorie>/', ListActifPassif.as_view(), name="get_actif_passif"), #Get Actif/Passif ['immo','all']

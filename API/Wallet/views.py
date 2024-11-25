@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from django.conf import settings
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
 # Create your views here.
 
 #créer une requête avec chatgpt pour avoir les informations et le dernier prix d'un asset qui n'est pas donné par yfinance
@@ -95,7 +96,19 @@ class BuyView(APIView):
             except Exception as e:
                 return Response({"error":f"La mise à jour du Cash n'a pas pu se faire: {e}"}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+class DeleteBuyView(APIView):
+    permission_classes = (IsAuthenticated)
 
+    def delete(self, request, format=None):
+        wallet = Wallet.objects.get(user=request.user)
+        id = self.kwargs.get('pk')
+        try:
+            buy = get_object_or_404(Buy, wallet=wallet, id=id)
+            buy.delete()
+            return Response({"success": "L'achat a été supprimé avec succès."}, status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response({"error": f"Une erreur est survenue lors de la suppression : {e}"},status=status.HTTP_400_BAD_REQUEST)
 
 class SellView(APIView):
     permission_classes = (IsAuthenticated)
@@ -140,6 +153,19 @@ class SellView(APIView):
             except Exception as e:
                 return Response({"error":f"La mise à jour du Cash n'a pas pu se faire {e}"}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+class DeleteSellView(APIView):
+    permission_classes = (IsAuthenticated)
+
+    def delete(self, request, format=None):
+        wallet = Wallet.objects.get(user=request.user)
+        id = self.kwargs.get('pk')
+        try:
+            sell = get_object_or_404(Sells, wallet=wallet, id=id)
+            sell.delete()
+            return Response({"success": "La vente a été supprimée avec succès."}, status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response({"error": f"Une erreur est survenue lors de la suppression : {e}"},status=status.HTTP_400_BAD_REQUEST)
 
 #Pour mettre à jour les données de Crypto et Bourse
 class MajAsset(APIView):

@@ -1,6 +1,7 @@
-#Obtenir le montant des categories 
+
+#Obtenir le montant des categories
 #Obtenir la list des assets
-#Obtenir la liste Actif/Passif 
+#Obtenir la liste Actif/Passif
 #Obtenir l'historique des transaction
 #Obtenir les revenus annualisés de l'immo
 #Obtenir le Momentum
