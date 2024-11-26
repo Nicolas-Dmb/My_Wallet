@@ -14,6 +14,8 @@ from django.utils.dateparse import parse_datetime
 from unittest.mock import patch
 from django.utils.dateparse import parse_datetime
 import pytz
+import django
+django.setup()
 '''
 Il me manque les tests suivants mais je pense qu'ils ne sont pas nécessaires : 
     Asset : 

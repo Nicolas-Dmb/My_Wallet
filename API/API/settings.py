@@ -41,13 +41,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    'rest_framework',
-    'rest_framework_simplejwt',
-    'Community',
-    'Strategy',
-    'User',
-    'Wallet',
-    'General',
+    "rest_framework",
+    "rest_framework_simplejwt",
+    "Community",
+    "Strategy",
+    "User",
+    "Wallet",
+    "General",
 ]
 
 MIDDLEWARE = [

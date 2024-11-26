@@ -5,7 +5,7 @@ from .models import Buy, Sells, Wallet, Asset, CryptoDetail, BourseDetail, Cash,
 from General.models import Asset as AssetGeneral
 from General.models import OneYearValue,OldValue
 from General.serializers import OneYearValueSerializer,OldValueSerializer
-from .serializers import BuySerializer, CryptoDetailSerializer, BourseDetailSerializer, CashDetailSerializer, SellSerializer, AssetSerializer, CashAccountSerializer, RealEstateDetailSerializer, CategoriesSerializerDetail, CategoriesSerializerList, BuyHistoriqueSerializer, SellHistoriqueSerializer, RealEstateHistoriqueSerializer,RevenuAnnuelImmoSerializer, HistoriqueSerializer
+from .serializers import BuySerializer, CryptoDetailSerializer, BourseDetailSerializer, CashDetailSerializer, SellSerializer, AssetSerializer, CashAccountSerializer, RealEstateDetailSerializer, CategoriesSerializerDetail, WalletSerializer, BuyHistoriqueSerializer, SellHistoriqueSerializer, RealEstateHistoriqueSerializer,RevenuAnnuelImmoSerializer, HistoriqueSerializer
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import generics, views, status
 from rest_framework.views import APIView
@@ -31,12 +31,12 @@ class AmountCategories(APIView):
                     case 'cash':
                         amounts = Categories.objects.filter(wallet=wallet, type='Cash').first()
                     case 'all':
-                        amounts = Categories.objects.filter(wallet=wallet).first()
+                        amounts = Wallet.objects.filter(user=request.user).first()
             except Categories.DoesNotExist :
                 return Response({"error": "Instance non trouvée"}, status=status.HTTP_404_NOT_FOUND)
             
-            if categorie == 'All':
-                serializer = CategoriesSerializerList(amounts)
+            if categorie == 'all':
+                serializer = WalletSerializer(amounts)
             else: 
                 serializer = CategoriesSerializerDetail(amounts)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -143,8 +143,7 @@ class ListActifPassif(APIView):
             passifs = RealEstateDetail.objects.filter(realestate=immo)
             if categorie == 'all':
                 actifs = Categories.objects.filter(wallet=wallet)
-            else :
-                actifs = RealEstateDetail.objects.filter(realestate=immo)
+            actifsimmo = RealEstateDetail.objects.filter(realestate=immo)
         else :
             return Response(status=status.HTTP_400_BAD_REQUEST)
         emprunt=0
@@ -160,19 +159,19 @@ class ListActifPassif(APIView):
             },
         }
         somme_actif=0
-        for actif in actifs:
-            if categorie == 'all':
+        if categorie == 'all':
+            for actif in actifs:
                 actif_data={
                     actif.type : actif.amount,
                 }
                 somme_actif+=actif.amount
-            else :
-                actif_data={
-                    actif.adresse : actif.actual_value,
-                }
-                somme_actif+=actif.actual_value
+        for actif in actifsimmo:
+            actif_data={
+                actif.adresse : actif.actual_value,
+            }
+            somme_actif+=actif.actual_value
             data['actif'].append(actif_data)
-        data['total'].append(somme_actif)
+        data['total'].append(somme_actif-emprunt)
         return Response(data)
     
 
@@ -197,7 +196,7 @@ class historiqueAchatVente(APIView):
                         assets = Asset.objects.filter(wallet=wallet)
             except Categories.DoesNotExist :
                 return Response({"error": "Instance non trouvée"}, status=status.HTTP_404_NOT_FOUND)
-            if categorie is not 'immo':
+            if categorie != 'immo':
                 for asset in assets:
                     buys = Buy.objects.filter(ticker=asset.ticker, wallet=wallet)
                     sells = Sells.objects.filter(ticker=asset.ticker, wallet=wallet)
@@ -281,7 +280,7 @@ class MomentumPF(APIView):
                     SixMonth = 0
                 #Average 
                 if count>0:
-                    Increase =  (OneMonth+ThreeMonth+SixMonth)/count
+                    Increase = (OneMonth+ThreeMonth+SixMonth)/count
                 else : 
                     Increase = 0
                 data.append({

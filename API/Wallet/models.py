@@ -204,8 +204,8 @@ class Asset(models.Model):
         GBP = 'GBP',
         JPY = 'JPY',
     
-    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='buys')
-    name = models.CharField()
+    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='assets')
+    name = models.CharField(max_length=50)
     actual_price = models.FloatField()
     date_price = models.DateTimeField(blank=True, null=True) #instance créer lors de l'actualisation d'un prix non pris en charge par Yfinance
     currency = models.CharField(max_length=10, default=CurrencyList.EUR, choices=CurrencyList.choices, blank=False)
@@ -213,9 +213,9 @@ class Asset(models.Model):
     number = models.FloatField(blank=False)
     #api
     api_know = models.BooleanField(default=True)
-    company = models.CharField(null=True, blank=True)
+    company = models.CharField(null=True, blank=True, max_length=50)
     type = models.CharField(max_length=50, null=True, blank=True)
-    ticker = models.CharField(max_length=10)
+    ticker = models.CharField(max_length=20)
     #API spécifique bourse
     country = models.CharField(max_length=50, null=True, blank=True)
     sector = models.CharField(max_length=100, null=True, blank=True)
@@ -342,16 +342,16 @@ class Buy(models.Model):
     
     currency = models.CharField(max_length=10, default=CurrencyList.EUR, choices=CurrencyList.choices, blank=False)
     #Foreignkey
-    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='buys')
+    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='buy')
     #buy
-    name = models.CharField()
-    plateforme = models.CharField(blank=True, null=True)
-    account = models.CharField(blank=True, null=True)
+    name = models.CharField(max_length=50)
+    plateforme = models.CharField(blank=True, null=True,max_length=50)
+    account = models.CharField(blank=True, null=True,max_length=100)
     number_buy = models.FloatField(blank=False)
     price_buy = models.FloatField(blank=False) #C'est le total et non l'unité
     date_buy = models.DateTimeField(default=timezone.now)
     #API
-    ticker = models.CharField(max_length=10)
+    ticker = models.CharField(max_length=20)
 
 
     def __str__(self):
@@ -383,13 +383,13 @@ class Sells(models.Model):
         JPY = 'JPY',
 
     #identification
-    name = models.CharField()
-    ticker = models.CharField(max_length=10, unique=True)
+    name = models.CharField(max_length=50)
+    ticker = models.CharField(max_length=20, unique=True)
     wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='sells')
     #informations
-    plateforme = models.CharField(blank=True, null=True)
-    account = models.CharField(blank=True, null=True)
-    currency = models.CharField(max_length=10, default=CurrencyList.EUR, choices=CurrencyList.choices, blank=False)
+    plateforme = models.CharField(blank=True, null=True,max_length=50)
+    account = models.CharField(blank=True, null=True,max_length=50)
+    currency = models.CharField(max_length=20, default=CurrencyList.EUR, choices=CurrencyList.choices, blank=False)
     number_sold = models.FloatField(blank=False)
     price_sold = models.FloatField(blank=False) #C'est le total et non l'unité
     date_sold = models.DateTimeField(default=timezone.now)
@@ -425,7 +425,7 @@ class CryptoDetail(models.Model):
     wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE)
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE)
     #action
-    sous_category = models.CharField(max_length=10, choices=CategoryList.choices, blank=False)
+    sous_category = models.CharField(max_length=20, choices=CategoryList.choices, blank=False)
     stacking = models.BooleanField(default=False)
     number_stacking = models.IntegerField(blank=True, null=True)
 
@@ -446,7 +446,7 @@ class BourseDetail(models.Model):
 
     wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE)
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE)
-    sous_category = models.CharField(max_length=10, choices=CategoryList.choices, blank=False)
+    sous_category = models.CharField(max_length=20, choices=CategoryList.choices, blank=False)
     #API:
     industry = models.CharField(max_length=100, null=True, blank=True) #Technologie / Santé / Finance / Énergie / Matériaux de base / Industrie / Consommation cyclique/ Consommation non cyclique/ Télécommunications / Immobilier/ Services publics / Commodities / Gold
 
@@ -465,14 +465,14 @@ class CashDetail(models.Model):
         autre = 'autre',
 
     wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE)
-    bank = models.CharField()
-    account = models.CharField(choices=AccountTypes.choices, default=AccountTypes.CC)
+    bank = models.CharField(max_length=50)
+    account = models.CharField(max_length=50,choices=AccountTypes.choices, default=AccountTypes.CC)
     amount = models.FloatField(default=0)
 
     @transaction.atomic
     def cash_maj_Amount(self, amount='undifined'):
         HistoricalPrice.objects.create(cash=self, date=timezone.now(), value=self.amount)
-        if amount is not 'undifined':
+        if amount != 'undifined':
             HistoricalWallet.NewPrice('Cash',timezone.now(),self.amount-amount, self.wallet, 0)
             self.amount += amount
         try:
@@ -536,7 +536,7 @@ class RealEstateDetail(models.Model):
     #Foreignkey
     realestate = models.ForeignKey(RealEstate, on_delete=models.CASCADE)
     #info d'origine
-    type = models.CharField(choices = EstateTypes.choices)
+    type = models.CharField(choices = EstateTypes.choices,max_length=50)
     adresse = models.TextField(blank=True, null=True)
     buy_date = models.DateTimeField()
     buy_price = models.FloatField()
@@ -546,9 +546,9 @@ class RealEstateDetail(models.Model):
     other_costs = models.FloatField(blank=True, null=True)
     notaire_costs = models.FloatField(blank=True, null=True)
     apport = models.FloatField(blank=True, null=True)
-    destination=models.CharField(choices=DestinationChoices.choices, blank=True, null=True)
+    destination=models.CharField(choices=DestinationChoices.choices, blank=True, null=True,max_length=50)
     #location
-    type_rent = models.CharField(choices=rentChoices.choices, blank=True, null=True)
+    type_rent = models.CharField(choices=rentChoices.choices, blank=True, null=True,max_length=50)
     defisc = models.BooleanField(default=False,blank=True, null=True)
     loyer_annuel = models.FloatField(blank=True, null=True)
     charges_annuel = models.FloatField(blank=True, null=True)
@@ -562,7 +562,7 @@ class RealEstateDetail(models.Model):
     actual_value = models.FloatField()
     actual_date = models.DateTimeField(default=timezone.now)
     #propriété
-    type_own = models.CharField(choices=OwnTypes.choices)
+    type_own = models.CharField(choices=OwnTypes.choices,max_length=50)
     part_own = models.IntegerField(blank=True, null=True)
 
     def __str__(self): 

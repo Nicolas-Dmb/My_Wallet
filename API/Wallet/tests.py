@@ -3,14 +3,10 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from django.utils import timezone
-from datetime import timedelta
-from django.test import TestCase
-from .models import Setting
-from rest_framework import status
-from User.tests import register_user,user_token
 from .models import Asset, Buy, Sells, Categories, Wallet, CryptoDetail, BourseDetail, CashDetail, RealEstate, RealEstateDetail, HistoricalPrice, HistoricalWallet, HistoricalCrypto, HistoricalBourse, HistoricalCash, HistoricalImmo
-
+import django
+from User.tests import register_user, account_fixture, user_token
+django.setup()
 
 
 User = get_user_model()
@@ -241,22 +237,6 @@ def BuyFixture(api_client,buy,register_user,user_token):
         for data in list:
             response = api_client.post(url,buy[data],format='json')
             assert response.status_code == 201
-            
-@pytest.fixture
-def PostCash(api_client,register_user,user_token,NewCashDetail):
-    Cash = []
-    user = register_user
-    access_token = user_token['access']
-    url = reverse('cash')
-    api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
-    list = ["LEP","PEA","CT"]
-    for accounttype in list:
-        response = api_client.post(url, NewCashDetail[accounttype], format='json')
-        assert response.status_code == 201
-        wallet = Wallet.objects.get(user=user)
-        cashDetail=CashDetail.objects.filter(wallet=wallet,account=NewCashDetail[accounttype]["account"])
-        Cash.append(cashDetail)
-    return Cash
 
 @pytest.fixture
 def PostSell(api_client,sell,register_user,user_token):
@@ -272,7 +252,7 @@ def PostSell(api_client,sell,register_user,user_token):
             assert response.status_code == 201
 
 @pytest.fixture
-def testPostCash(api_client,register_user,user_token,NewCashDetail):
+def PostCash(api_client,register_user,user_token,NewCashDetail):
         user = register_user
         access_token = user_token['access']
         url = reverse('cash-list')
@@ -282,8 +262,8 @@ def testPostCash(api_client,register_user,user_token,NewCashDetail):
             response = api_client.post(url, NewCashDetail[accounttype], format='json')
             assert response.status_code == 201
 
-@pytest.fixturedef
-def testRealEstateDetail(api_client,NewRealEstate,ModifRealEstate, register_user,user_token):
+@pytest.fixture
+def RealEstateDetailfixture(api_client,NewRealEstate,ModifRealEstate, register_user,user_token):
         user = register_user
         access_token = user_token['access']
         list = ["Full_data","Less_data"]
@@ -292,6 +272,8 @@ def testRealEstateDetail(api_client,NewRealEstate,ModifRealEstate, register_user
         for data in list :
             response = api_client.post(url,NewRealEstate[data],format='json')
             assert response.status_code == 201
+            immo = RealEstateDetail.objects.get(NewRealEstate[data]["adresse"])
+            assert immo.actual_value == NewRealEstate[data]["buy_price"]
             #Modif
             url = reverse('maj_realEstate', kwargs={'pk': immo.id})
             response = api_client.patch(url,ModifRealEstate[data],format='json')

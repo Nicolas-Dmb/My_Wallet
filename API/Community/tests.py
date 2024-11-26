@@ -2,10 +2,6 @@ import pytest
 from rest_framework.test import APIClient
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from django.core import mail
-from django.utils import timezone
-from datetime import timedelta
-from django.test import TestCase
 from .models import Subject, Favori, Message, KeyWord
 from rest_framework import status
 from django.core.files.uploadedfile import SimpleUploadedFile

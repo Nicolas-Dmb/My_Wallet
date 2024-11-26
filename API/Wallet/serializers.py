@@ -92,16 +92,15 @@ class RealEstateDetailSerializer(ModelSerializer):
             
             instance.save()
             return instance
-            
 
-class CategoriesSerializerList(ModelSerializer):
+class WalletSerializer(ModelSerializer):
     class Meta:
-        model = Categories
-        fields = ['amount', 'type']
+        model = Wallet
+        fields = ['amount', 'date']
         extra_kwargs = {
             'amount': {'read_only': True},
-            'type': {'read_only': True},
-        }
+            'date': {'read_only': True},
+        }          
 class CategoriesSerializerDetail(ModelSerializer):
     class Meta:
         model = Categories
