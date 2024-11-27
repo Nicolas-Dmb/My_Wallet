@@ -93,8 +93,17 @@ class TestGet:
             response_income += data['loyer_annuel']
         assert good_Income == response_income
 
-    '''def testMomemtum(api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token,NewRealEstate,ModifRealEstate):
-        path('api/wallet/momentum/<str:categorie>/', MomentumPF.as_view(), name="get_momentum"),#Momentum of categories ['crypto','course','all']:'''
+    def testMomemtum(api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token,NewRealEstate,ModifRealEstate):
+        user = register_user
+        asset = Asset.objects.filter(ticker="AAPL").first()
+        access_token = user_token['access']
+        api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+        url = reverse("get_momentum", kwargs={'categorie':"bourse"})
+        response = api_client.get(url, format='json')
+        assert response.status_code == 200
+        assert response.data[0]['ticker']=="AAPL"
+        assert response.data[0]['name']=="apple"
+        #je ne vérifie pas que les valeurs retournées sont cohérante 
     
     def testGetOneAsset(api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token,NewRealEstate,ModifRealEstate):
         user = register_user
@@ -117,8 +126,8 @@ class TestGet:
 #Obtenir la liste Actif/Passif
 #Obtenir les revenus annualisés de l'immo
 #Obtenir les données propre à un Asset
-
-
 #Obtenir le Momentum
+
+
 #Obtenir les historiques de All, Crypto, Bourse, Cash ou Immo,
 #Obtenir l'historique des transaction

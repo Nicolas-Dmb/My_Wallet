@@ -43,6 +43,7 @@ class TestAssetAPI:
             if apple == 2 and ticker == 'AAPL':
                 assert response.status_code == 200
             else : 
+                print(response.data)
                 assert response.status_code == 201
             #on vérifie que tous les models ont été crées
             assert len(Asset.objects.filter(ticker = ticker.upper())) ==1
@@ -126,7 +127,7 @@ class TestAssetAPI:
             for date in dates :
                 date = datetime.strptime(date, '%Y-%m-%d')
                 if ticker != 'jdenjnjed':
-                    #dates à initialiser 
+                    # dates à initialiser
                     asset = yf.download(ticker, group_by='column',start=date-timedelta(days=1),end=date, interval='1d')
                     asset_price = asset['Close'].iloc[-1]
                     OneYearValue_data = yf.download(ticker, group_by='column',start=date-timedelta(days=365),end=date, interval='1wk') 
@@ -158,6 +159,7 @@ class TestAssetAPI:
                     assert response.data == {"error":"actif inaccessible"}
                     return
                 else : 
+                    print(response.data)
                     assert response.status_code == 201
                 # on fait une requete de maj pour voir si ca marche même quand ca ne met pas à jour
                 asset_1 = Asset.objects.get(ticker=ticker.upper())
@@ -236,6 +238,7 @@ class TestAssetAPI:
         url = reverse('asset-list')
         payload = {'ticker':'AAPL'}
         response = api_client.post(url,payload, format='json')
+        print(response.data)
         assert response.status_code == 201
         asset = Asset.objects.get(ticker = 'AAPL')
         # modifier
@@ -281,6 +284,7 @@ class TestCurrencyAPI:
         url = reverse('asset-list')
         payload = {'ticker':'BTC-USD'}
         response = api_client.post(url,payload, format='json')
+        print(response.data)
         assert response.status_code == 201
         #dates à initialiser 
         date = datetime.strptime('2021-01-01', '%Y-%m-%d')

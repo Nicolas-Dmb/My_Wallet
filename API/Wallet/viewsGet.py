@@ -238,7 +238,7 @@ class MomentumPF(APIView):
                         amounts = Asset.objects.filter(wallet=wallet, category='Bourse')
                     case 'all':
                         amounts = Asset.objects.filter(wallet=wallet)
-            except Categories.DoesNotExist :
+            except Categories.DoesNotExist:
                 return Response({"error": "Instance non trouvée"}, status=status.HTTP_404_NOT_FOUND)
         #on va iterer les assets et venir récupérer la perf sur 1 3 et 6 mois.
         data = []

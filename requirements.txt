@@ -7,3 +7,5 @@ sqlparse==0.5.0
 yfinance
 openai==1.55.1
 python-dotenv==1.0.1
+pyotp==2.9.0
+itsdangerous==2.2.0
