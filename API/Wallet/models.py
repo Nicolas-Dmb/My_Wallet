@@ -22,6 +22,9 @@ class Wallet(models.Model):
         self.amount = 0
         self.date = timezone.now()
         self.amount = Boursecategorie.amount + Cryptocategorie.amount + Cashcategorie.amount
+        print(f"Boursecategorie.amount:{Boursecategorie.amount}")
+        print(f"Cryptocategorie.amount:{Cryptocategorie.amount}")
+        print(f"Cashcategorie.amount:{Cashcategorie.amount}")
         try:
             estate = RealEstate.objects.get(wallet=self)
         except: 
@@ -50,14 +53,14 @@ class Categories(models.Model):
     
     @transaction.atomic
     def maj_SubWallet(self, categorie):
-        print("passage ici")
+        self.amount = 0
         if categorie == 'Bourse':
-            print("c'est une bourse")
             try : 
                 assets = Asset.objects.filter(wallet = self.wallet, category='Bourse')
             except :
                 return "Aucun asset trouvé pour cette catégorie"
             for asset in assets:
+                print("ca passe dans maj_SubWallet Bourse")
                 self.amount += (asset.actual_price * asset.number)
                 if BourseDetail.objects.filter(asset=asset).exists():
                     detail = BourseDetail.objects.filter(asset=asset).first()
@@ -70,12 +73,12 @@ class Categories(models.Model):
                     elif detail.sous_category == "Matieres_Premieres":
                         categorie.amount_matieres_premieres += (asset.actual_price * asset.number)
         elif categorie=='Crypto':
-            print("c'est une crypto")
-            try : 
-                assets = Asset.objects.filter(wallet = self.wallet, category='Bourse')
+            try :
+                assets = Asset.objects.filter(wallet = self.wallet, category='Crypto')
             except :
                 return "Aucun asset trouvé pour cette catégorie"
             for asset in assets:
+                print("ca passe dans maj_SubWallet Crypto")
                 self.amount += (asset.actual_price * asset.number)
                 if CryptoDetail.objects.filter(asset=asset).exists(): 
                     detail = CryptoDetail.objects.filter(asset=asset).first()
@@ -104,6 +107,7 @@ class Categories(models.Model):
 
     @transaction.atomic
     def maj_Cash(self):
+        self.amount =0 
         try : 
             cashs = CashDetail.objects.filter()
         except :
@@ -264,7 +268,6 @@ class Asset(models.Model):
             else:
                 categories = Bourse.objects.get(wallet=wallet)
         except (Crypto.DoesNotExist, Bourse.DoesNotExist):
-            print(f'asset: {asset}')
             asset.new_SubWallet()
             return True
         categories.maj_SubWallet(asset.category)
@@ -282,10 +285,10 @@ class Asset(models.Model):
         except : 
             self.api_know = False
             return "Aucune donnée récupéré auprès de l'API"
-        if number>0:
-            HistoricalWallet.NewValue(self.category,date,self.actual_price*self.number,self,self.ticker,self.wallet)
+        if number!=0:
+            HistoricalWallet.NewValue(self.category,date,self.actual_price*self.number,self, self.ticker,self.wallet)
         else:
-            HistoricalWallet.NewPrice(self.category,date,self.actual_price-info.last_value, self.wallet, self)
+            HistoricalWallet.NewPrice(self.category,date,self.actual_price-info.last_value, self.wallet)
         self.actual_price = info.last_value
         self.save()
         # On vient mettre a jour les wallets par catégories
@@ -304,15 +307,18 @@ class Asset(models.Model):
     #MAJ sans Yfinance
     @transaction.atomic
     def maj_asset_withoutAPI(self, actual_price, date,number=0):
-        if number>0:
-            HistoricalWallet.NewValue(self.category,date,actual_price*self.number,self,self.ticker,self.wallet)
-        else:
-            HistoricalWallet.NewPrice(self.category,date,self.actual_price-actual_price, self.wallet, 0)
+        if date == None : date = timezone.now().date()
+        if number!=0:
+            HistoricalWallet.NewValue(self.category,date,float(actual_price)*float(self.number),self,self.ticker,self.wallet)
+        elif actual_price: 
+            HistoricalWallet.NewPrice(self.category,date,float(self.actual_price)-float(actual_price), self.wallet)
         #met à jour l'historique
-        HistoricalPrice.objects.create(asset=self, date=self.date_price, value=self.actual_price)
-        self.actual_price = actual_price
+        print(f"date_price : {self.date_price}")
+        HistoricalPrice.objects.create(wallet=self.wallet,asset=self, date=self.date_price, value=self.actual_price)
+        if(date>self.date_price):
+            self.actual_price = actual_price
+            self.date_price = date
         self.number += number
-        self.date_price = date
         self.save()
         # On vient mettre a jour les wallets par catégories
         try:
@@ -342,6 +348,7 @@ class Asset(models.Model):
             sector = sector,
             company = company,
             number = number,
+            date_price = date,
         )
         #on créer un historique 
         HistoricalWallet.NewValue(asset.category,date,price_buy*asset.number,asset,ticker,wallet)
@@ -382,7 +389,6 @@ class Buy(models.Model):
     #dès que buy est créer et que cryptoDetail ou bourseDetail a été initialisé je dois appeler cette fonction pour initialiser asset puis wallet de la catégorie puis Wallet
     @transaction.atomic
     def new_buy(self, type='undifined', categories='undifined', country='undifined', sector='undifined', company='undifined'):
-        print("ca passe dans new buy")
         #On vient mettre à jour Asset
         asset = Asset.objects.filter(ticker=self.ticker, wallet=self.wallet).first()
         if asset:
@@ -430,9 +436,9 @@ class Sells(models.Model):
         asset = Asset.objects.filter(ticker=self.ticker, wallet=self.wallet).first()
         if asset:
             if asset.api_know:
-                asset.maj_asset(self.number_sold*-1, self.date_buy) #in envoie le nombre en négatif
+                asset.maj_asset(self.number_sold*-1, self.date_sold) #in envoie le nombre en négatif
             else:
-                asset.maj_asset_withoutAPI(self.price_sold, (self.number_sold*-1), self.date_sold)
+                asset.maj_asset_withoutAPI(self.price_sold, self.date_sold, (self.number_sold*-1))
         else:
             response = Asset.new_asset(self.ticker, self.number_sold*-1, self.name, self.wallet, self.date_sold)
             if response == False:
@@ -503,7 +509,7 @@ class CashDetail(models.Model):
 
     @transaction.atomic
     def cash_maj_Amount(self, amount='undifined'):
-        HistoricalPrice.objects.create(cash=self, date=timezone.now(), value=self.amount)
+        HistoricalPrice.objects.create(wallet=self.wallet,cash=self, date=timezone.now(), value=self.amount)
         if amount != 'undifined':
             HistoricalWallet.NewPrice('Cash',timezone.now(),self.amount-amount, self.wallet, 0)
             self.amount += amount
@@ -605,13 +611,13 @@ class RealEstateDetail(models.Model):
     def maj_realEstateDetail(self, actual_value='undifined', resteApayer='undifined'):
         if actual_value != 'undifined' and resteApayer != 'undifined':
             HistoricalWallet.NewPrice('Immo',timezone.now(),(self.actual_value-self.resteApayer)-(actual_value-resteApayer), self.realestate.wallet, 0)
-            HistoricalPrice.objects.create(RealEstate=self, date=self.actual_date, value=self.actual_value)
+            HistoricalPrice.objects.create(wallet=self.realestate.wallet,RealEstate=self, date=self.actual_date, value=self.actual_value)
             self.actual_value = actual_value
             self.actual_date = timezone.now()
             self.resteApayer = resteApayer
         elif actual_value != 'undifined':
             HistoricalWallet.NewPrice('Immo',timezone.now(),(self.actual_value-self.resteApayer)-(actual_value-self.resteApayer), self.realestate.wallet, 0)
-            HistoricalPrice.objects.create(RealEstate=self, date=self.actual_date, value=self.actual_value)
+            HistoricalPrice.objects.create(wallet=self.realestate.wallet,RealEstate=self, date=self.actual_date, value=self.actual_value)
             self.actual_value = actual_value
             self.actual_date = timezone.now()
         elif resteApayer != 'undifined':
@@ -625,6 +631,7 @@ class RealEstateDetail(models.Model):
 #ici je vais stocker les anciennes valeurs d'actif non récupéré de yfiannce
 class HistoricalPrice(models.Model):
     #Foreignkey
+    wallet = models.ForeignKey(Wallet,on_delete=models.CASCADE )
     cash = models.ForeignKey(CashDetail, on_delete=models.CASCADE, blank=True, null=True)
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, blank=True, null=True)
     RealEstate = models.ForeignKey(RealEstateDetail, on_delete=models.CASCADE, blank=True, null=True)
@@ -650,69 +657,67 @@ class HistoricalWallet(models.Model):
     # value est le prix*nombre d'actif
     @transaction.atomic
     def NewValue(categorie,date,value,instance,ticker,wallet):
-        print(date)
-        print(datetime.now().date())
         date_normalized = date - timedelta(days=date.weekday())
         while date_normalized < datetime.now().date():
             #on séléctionne le prix 
-            try :
+            if Asset_data.objects.filter(ticker=ticker).exists():
                 assetG = Asset_data.objects.get(ticker=ticker)
                 #si la date_normalized est plus d'un an en arrière alors on récupère OldValue
                 if date_normalized < datetime.now().date()- timedelta(days=365):
                     oldValue = OldValue.objects.filter(asset=assetG).order_by("-date").first()#on récupère la date la plus proche de date_normalized
                     value = oldValue.value
-            except Asset_data.DoesNotExist:
-                try : 
-                    #on selectionne le bon historicalPrice de la categorie
-                    match categorie:
-                        case 'Cash':
-                            self = HistoricalPrice.objects.filter(wallet=wallet,date__lte=date,cash=instance).order_by("-date").first()#on récupère la date la plus proche de date_normalized
-                        case 'Bourse':
-                            self = HistoricalPrice.objects.filter(wallet=wallet,date__lte=date,asset=instance).order_by("-date").first()#on récupère la date la plus proche de date_normalized
-                        case 'Crypto':
-                            self = HistoricalPrice.objects.filter(wallet=wallet,date__lte=date,asset=instance).order_by("-date").first()#on récupère la date la plus proche de date_normalized
-                        case 'Immo':
-                            self = HistoricalPrice.objects.filter(wallet=wallet,date__lte=date,RealEstate=instance).order_by("-date").first()#on récupère la date la plus proche de date_normalized
-                    value = self.value
-                except HistoricalPrice.DoesNotExist:
-                    #s'il n'est pas suivi et pas inscrit dans HistoricalPrice
+            else:
+                #on selectionne le bon historicalPrice de la categorie
+                match categorie:
+                    case 'Cash':
+                        self = HistoricalPrice.objects.filter(wallet=wallet,date__lte=date,cash=instance).order_by("-date").first()#on récupère la date la plus proche de date_normalized
+                    case 'Bourse':
+                        self = HistoricalPrice.objects.filter(wallet=wallet,date__lte=date,asset=instance).order_by("-date").first()#on récupère la date la plus proche de date_normalized
+                    case 'Crypto':
+                        self = HistoricalPrice.objects.filter(wallet=wallet,date__lte=date,asset=instance).order_by("-date").first()#on récupère la date la plus proche de date_normalized
+                    case 'Immo':
+                        self = HistoricalPrice.objects.filter(wallet=wallet,date__lte=date,RealEstate=instance).order_by("-date").first()#on récupère la date la plus proche de date_normalized
+                #s'il n'est pas suivi et pas inscrit dans HistoricalPrice
+                if self == None:
                     value = value
+                else:#sinon
+                    value = self.value
             #on selectionne le HistoricalWallet ou on en créer un 
-            try:
+            if HistoricalWallet.objects.filter(wallet=wallet,date = date_normalized).exists():
                 historicalWallet = HistoricalWallet.objects.get(wallet=wallet,date = date_normalized)
                 historicalWallet.value += value
                 historicalWallet.save()
-            except  HistoricalWallet.DoesNotExist:
+            else:
                 HistoricalWallet.objects.create(wallet=wallet, date = date_normalized,value=value)
             #On selectionne sa souscatégorie et on y ajoute value
             match categorie:
                 case 'Cash':
-                    try:
+                    if HistoricalCash.objects.filter(wallet=wallet,date=date_normalized).exists():
                         sousHistorique = HistoricalCash.objects.get(wallet=wallet,date=date_normalized)
                         sousHistorique.value += value
                         sousHistorique.save()
-                    except HistoricalCash.DoesNotExist:
+                    else:
                         HistoricalCash.objects.create(wallet=wallet,date=date_normalized,value=value)
                 case 'Bourse':
-                    try:
+                    if HistoricalBourse.objects.filter(wallet=wallet,date=date_normalized).exists():
                         sousHistorique = HistoricalBourse.objects.get(wallet=wallet,date=date_normalized)
                         sousHistorique.value += value
                         sousHistorique.save()
-                    except HistoricalBourse.DoesNotExist:
+                    else :
                         HistoricalBourse.objects.create(wallet=wallet,date=date_normalized,value=value)
                 case 'Crypto':
-                    try:
+                    if HistoricalCrypto.objects.filter(wallet=wallet,date=date_normalized).exists():
                         sousHistorique = HistoricalCrypto.objects.get(wallet=wallet,date=date_normalized)
                         sousHistorique.value += value
                         sousHistorique.save()
-                    except HistoricalCrypto.DoesNotExist:
+                    else:
                         HistoricalCrypto.objects.create(wallet=wallet,date=date_normalized,value=value)
                 case 'Immo':
-                    try:
+                    if HistoricalImmo.objects.filter(wallet=wallet,date=date_normalized).exists():
                         sousHistorique = HistoricalImmo.objects.get(wallet=wallet,date=date_normalized)
                         sousHistorique.value += value
                         sousHistorique.save()
-                    except HistoricalImmo.DoesNotExist:
+                    else :
                         HistoricalImmo.objects.create(wallet=wallet,date=date_normalized,value=value)
             #date_normalized = date + timedelta(days=(7 - date.weekday()))
             date_normalized += timedelta(weeks=1)
@@ -720,10 +725,12 @@ class HistoricalWallet(models.Model):
     # lors d'un modif prix d'un asset non suivie dont le prix mis à jour est plus ancien qu'une semaine
     # value est la différence entre le nouveau et l'ancien prix * nombre d'actif
     @transaction.atomic
-    def NewPrice(self,categorie,date,value, wallet, ticker):
+    def NewPrice(categorie,date,value, wallet):
         #ici je supprime l'ancien prix depuis sa nouvelle mise à jour 
+        if date == None : date = timezone.now().date()
+        print(date)
         date_normalized = date - timedelta(days=date.weekday())
-        while date_normalized < datetime.now():
+        while date_normalized < datetime.now().date():
             #on selectionne le HistoricalWallet ou on en créer un 
             historicalWallet = HistoricalWallet.objects.get(wallet=wallet,date = date_normalized)
             historicalWallet.value += value

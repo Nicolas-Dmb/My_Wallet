@@ -17,7 +17,7 @@ from datetime import timedelta
 class AmountCategories(APIView):
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request, format=None):
+    def get(self, request, *args, **kwargs):
         wallet = Wallet.objects.get(user=request.user)
         #on récupère la catégorie souhaité 
         categorie = self.kwargs.get('categorie')
@@ -56,7 +56,7 @@ class AmountCategories(APIView):
 class ListAsset(APIView):
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request, format=None):
+    def get(self, request, *args, **kwargs):
         wallet = Wallet.objects.get(user=request.user)
         categorie = self.kwargs.get('categorie') #Peut être Bourse Crypto Cash ou Immo
         results = []
@@ -145,7 +145,7 @@ class ListAsset(APIView):
 class ListActifPassif(APIView):
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request, format=None):
+    def get(self, request, *args, **kwargs):
         wallet = Wallet.objects.get(user=request.user)
         #on vérifie si c'est pour catégorie ou Immo
         categorie = self.kwargs.get('categorie')
@@ -190,7 +190,7 @@ class ListActifPassif(APIView):
 class historiqueAchatVente(APIView):
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request, format=None):
+    def get(self, request, *args, **kwargs):
         wallet = Wallet.objects.get(user=request.user)
         #on vérifie si c'est pour catégorie ou Immo
         categorie = self.kwargs.get('categorie')
@@ -237,7 +237,7 @@ class RevenuAnnuelImmo(APIView):
 class MomentumPF(APIView):
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request, format=None):
+    def get(self, request, *args, **kwargs):
         wallet = Wallet.objects.get(user=request.user)
         #on récupère la catégorie souhaité 
         categorie = self.kwargs.get('categorie')
@@ -330,7 +330,7 @@ class MomentumPF(APIView):
 class AssetData(APIView):
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request, format=None):
+    def get(self, request, *args, **kwargs):
         wallet = Wallet.objects.get(user=request.user)
         #on récupère la catégorie souhaité et l'id
         categorie = self.kwargs.get('categorie')
@@ -431,7 +431,7 @@ class AssetData(APIView):
 class PerformanceGlobal(APIView):
     permission_classes = (IsAuthenticated,)
     #la somme en cash sera calculé sur la valeur du portefeuille depuis la date d'aujourd'hui
-    def get(self, request, format=None):
+    def get(self, request, *args, **kwargs):
         wallet = Wallet.objects.get(user=request.user)
         #on récupère la catégorie souhaité et l'id All, Crypto, Bourse, Cash ou Immo 
         categorie = self.kwargs.get('categorie')

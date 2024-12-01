@@ -109,18 +109,20 @@ class BuyView(APIView):
                 return Response({"error":f"La mise à jour du Cash n'a pas pu se faire: {e}"}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
+#Il est préférable de faire une vente plutôt qu'une suppression car ca ne retourne pas le cash et initialise pas asset ni les montants
 class DeleteBuyView(APIView):
     permission_classes = (IsAuthenticated,)
 
-    def delete(self, request, format=None):
+    def delete(self, request, *args, **kwargs):
         wallet = Wallet.objects.get(user=request.user)
         id = self.kwargs.get('pk')
-        try:
-            buy = get_object_or_404(Buy, wallet=wallet, id=id)
+        if Buy.objects.filter(wallet=wallet, id=id).exists():
+            buy = Buy.objects.get(wallet=wallet, id=id)
             buy.delete()
+
             return Response({"success": "L'achat a été supprimé avec succès."}, status=status.HTTP_204_NO_CONTENT)
-        except Exception as e:
-            return Response({"error": f"Une erreur est survenue lors de la suppression : {e}"},status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"error":"L'instance de buy est introuvable"},status=status.HTTP_400_BAD_REQUEST)
 
 class SellView(APIView):
     permission_classes = (IsAuthenticated,)
@@ -132,12 +134,14 @@ class SellView(APIView):
             serializer = SellSerializer(data = request.data)
             if serializer.is_valid():
                 serializer.save(wallet = wallet)
+            else : 
+                return Response({"error": "Données invalides", "details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error":f"La vente n'a pas pu être enregistrée : {e}"}, status=status.HTTP_400_BAD_REQUEST)
         #On récupère les données transmises
         data = request.data
         #on vérifie qu'un asset n'est pas déjà existant : 
-        sell = Sells.objects.filter(date_sold = data.get("date_buy"), wallet=wallet, ticker=data.get("ticker")).first()
+        sell = Sells.objects.filter(date_sold = data.get("date_sold"), wallet=wallet, ticker=data.get("ticker")).first()
         asset = Asset.objects.filter(wallet=wallet, ticker=data.get("ticker")).first()
         #s'il n'y a pas déjà un asset 
         if not asset : 
@@ -162,22 +166,29 @@ class SellView(APIView):
                     serializerCash = CashDetailSerializer(data=data)
                     if serializerCash.is_valid():
                         serializerCash.save(wallet = wallet)
+                cash = Cash.objects.get(wallet=wallet)
+                cash.maj_Cash()
             except Exception as e:
                 return Response({"error":f"La mise à jour du Cash n'a pas pu se faire {e}"}, status=status.HTTP_400_BAD_REQUEST)
+        crypto = Crypto.objects.get(wallet=wallet)
+        crypto.maj_SubWallet(crypto.type)
+        bourse = Bourse.objects.get(wallet=wallet)
+        bourse.maj_SubWallet(bourse.type)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
+#Il est préférable de faire un achat plutôt qu'une suppression car ca ne retourne pas le cash et initialise pas asset ni les montants
 class DeleteSellView(APIView):
     permission_classes = (IsAuthenticated,)
 
-    def delete(self, request, format=None):
+    def delete(self, request, *args, **kwargs):
         wallet = Wallet.objects.get(user=request.user)
         id = self.kwargs.get('pk')
-        try:
-            sell = get_object_or_404(Sells, wallet=wallet, id=id)
+        if Sells.objects.filter( wallet=wallet, id=id).exists():
+            sell = Sells.objects.get(wallet=wallet, id=id)
             sell.delete()
             return Response({"success": "La vente a été supprimée avec succès."}, status=status.HTTP_204_NO_CONTENT)
-        except Exception as e:
-            return Response({"error": f"Une erreur est survenue lors de la suppression : {e}"},status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"error": "L'instance de sell est introuvable"},status=status.HTTP_400_BAD_REQUEST)
 
 #Pour mettre à jour les données de Crypto et Bourse
 class MajAsset(APIView):
@@ -185,21 +196,27 @@ class MajAsset(APIView):
 
     def patch(self, request, format=None):
         wallet = Wallet.objects.get(user=request.user)
-        asset = Asset.objects.filter(wallet=wallet, ticker=request.data.get('ticker'))
+        if Asset.objects.filter(wallet=wallet, ticker=request.data.get('ticker')).exists():
+            asset = Asset.objects.get(wallet=wallet, ticker=request.data.get('ticker'))
+        else : 
+            return Response({"error":"Aucun asset ne correspond"}, status=status.HTTP_404_NOT_FOUND)
         data = request.data
+        
         #on gère d'abord la gestion des historiques
-        if not asset.api_know:
-            asset.maj_asset_withoutAPI(self, data.get('actual_price'), data.get('number'))
+        if not asset.api_know and (data.get('actual_price') or data.get('number')):
+            price = data.get('actual_price')
+            number = data.get('number')
+            asset.maj_asset_withoutAPI(price, number)
         #on met à jour 
         serializer = AssetSerializer(asset, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save(wallet=wallet)
             #On remet à jour les sommes des catégories:
-            try:
-                categories = Categories.objects.get(wallet=wallet, type=asset.category)
-            except:
-                Categories.new_SubWallet(self, asset.category, wallet)
-        categories.maj_SubWallet(self, self.category)
+            if asset.category == 'Crypto':
+                categories = Crypto.objects.get(wallet=wallet)
+            else:
+                categories = Bourse.objects.get(wallet=wallet)
+        categories.maj_SubWallet(asset.category)
         if "cryptoDetail" in data:
             try:
                 #On vérifie s'il on doit créer ou mettre à jour
@@ -223,6 +240,7 @@ class MajAsset(APIView):
                     serializerCash.save(wallet=wallet, asset=asset)
             except Exception as e:
                 return Response({"error":f"La création de BourseDetail n'a pas pu se faire:{e}"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_200_OK)
         
 #Pour créer, supprimer ou modifier ou récupérer
 class CashAccount(ModelViewSet):
@@ -270,15 +288,15 @@ class RealEstateView(APIView):
         try :
             serializer = RealEstateDetailSerializer(data = request.data)
             if serializer.is_valid():
+                print("passage ici")
                 serializer.save(realestate = realestate)
                 HistoricalWallet.NewValue('Immo',request.data.get('buy_date'),request.data.get('actual_value')-request.data.get('resteApayer'),serializer.instance,0,wallet)
         except Exception as e:
             return Response({"error":f"Impossible d'enregristrer les données : {e}"}, status=status.HTTP_400_BAD_REQUEST)
-        estate = RealEstate.objects.filter(wallet=wallet).first()
-        estate.maj_amount()
+        realestate.maj_amount()
         #Gestion de CashDetail
-        if "cashDetail" in data: 
-            data = data.get("cashDetail")
+        if "cashDetail" in request.data: 
+            data = request.data.get("cashDetail")
             try:
                 cashDetail = CashDetail.objects.get(wallet=wallet, account=data.get("account"), bank=data.get("bank"))
                 if cashDetail :
@@ -293,7 +311,7 @@ class RealEstateView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     #dans patch les valeur actual_value et resteApayer sont envoyée elles seront traitée par la transaction atomique et le reste via le serializer
-    def patch(self, request, format=None):
+    def patch(self, request, *args, **kwargs):
         wallet = Wallet.objects.get(user=request.user)
         realestate = RealEstate.objects.get(wallet=wallet)
         realestatedetail = RealEstateDetail.objects.get(realestate=realestate,id=self.kwargs.get('pk'))

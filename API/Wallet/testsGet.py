@@ -12,7 +12,7 @@ django.setup()
 @pytest.mark.django_db
 class TestGet:
 
-    def testAmountCategories(api_client,BuyFixture,PostSell,PostCash,RealEstateDetailfixture,register_user,user_token):
+    def testAmountCategories(self, api_client,BuyFixture,PostSell,PostCash,RealEstateDetailfixture,register_user,user_token):
         user = register_user
         access_token = user_token['access']
         #test sur all
@@ -31,7 +31,7 @@ class TestGet:
             categories = Categories.objects.filter(wallet=wallet, type=type).first()
             assert response.data.amount == categories.amount
 
-    def testAllAssetList(api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token):
+    def testAllAssetList(self, api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token):
         assetsResponse = []
         user = register_user
         wallet = Wallet.objects.filter(user=user).first()
@@ -51,7 +51,7 @@ class TestGet:
         for immo in immos :
             assert immo in assetsResponse
 
-    def testActifPassif(api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token,NewRealEstate,ModifRealEstate):
+    def testActifPassif(self, api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token,NewRealEstate,ModifRealEstate):
         #On récupère les données immos de la fixture
         good_ValuePassif = NewRealEstate["Less_data"]["resteApayer"]+NewRealEstate["Full_data"]["resteApayer"]
         good_ValueActifImmo = ModifRealEstate["Less_data"]["actual_value"]+ModifRealEstate["Full_data"]["actual_value"]
@@ -76,7 +76,7 @@ class TestGet:
             else:
                 assert response.data['total'] == good_ValueActifImmo-good_ValuePassif
 
-    def testAnnualIncome(api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token,NewRealEstate,ModifRealEstate):
+    def testAnnualIncome(self, api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token,NewRealEstate,ModifRealEstate):
         #On récupère les données immos de la fixture
         good_Income = NewRealEstate["Less_data"]["loyer_annuel"]+NewRealEstate["Full_data"]["loyer_annuel"]
         #appel API
@@ -93,7 +93,7 @@ class TestGet:
             response_income += data['loyer_annuel']
         assert good_Income == response_income
 
-    def testMomemtum(api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token,NewRealEstate,ModifRealEstate):
+    def testMomemtum(self, api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token,NewRealEstate,ModifRealEstate):
         user = register_user
         asset = Asset.objects.filter(ticker="AAPL").first()
         access_token = user_token['access']
@@ -105,7 +105,7 @@ class TestGet:
         assert response.data[0]['name']=="apple"
         #je ne vérifie pas que les valeurs retournées sont cohérante 
     
-    def testGetOneAsset(api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token,NewRealEstate,ModifRealEstate):
+    def testGetOneAsset(self, api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token,NewRealEstate,ModifRealEstate):
         user = register_user
         wallet = Wallet.objects.filter(user=user).first()
         asset = Asset.objects.filter(wallet=wallet).first()
@@ -120,7 +120,7 @@ class TestGet:
         assert asset.ticker==response.data['ticker']
         assert asset.ticker==response.data['ticker']
 
-    def testHistoriqueAchat(api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token,NewRealEstate,ModifRealEstate):
+    def testHistoriqueAchat(self, api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token,NewRealEstate,ModifRealEstate):
         user = register_user
         wallet = Wallet.objects.filter(user=user).first()
         asset = Asset.objects.filter(wallet=wallet).first()
@@ -133,7 +133,7 @@ class TestGet:
         assert response.data[0]["date_buy"] == "2024-07-12"
         assert response.data[0]["date_buy"] == "2024-12-12"
 
-    def testHistoriqueAmount(api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token,NewRealEstate,ModifRealEstate):
+    def testHistoriqueAmount(self, api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token,NewRealEstate,ModifRealEstate):
         user = register_user
         wallet = Wallet.objects.filter(user=user).first()
         historiqueAll = HistoricalWallet.objects.filter(wallet=wallet)
