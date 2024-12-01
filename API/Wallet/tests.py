@@ -283,13 +283,11 @@ def RealEstateDetailfixture(api_client,NewRealEstate,ModifRealEstate, register_u
 #Création Buy et Création Sell (API_know)
 @pytest.mark.django_db
 class TestBuySellAPI:
-    # post puis delete 
+    #post puis delete 
     def testPostBuy(self,api_client,buy,register_user,user_token):
         user = register_user
         access_token = user_token['access']
         wallet = Wallet.objects.get(user=user)
-        assert not Crypto.objects.filter(wallet=wallet).exists()
-        assert not Bourse.objects.filter(wallet=wallet).exists()
         url = reverse('buy_asset')
         api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
         list = ["API_Know","unKnow","unKnowErrorData"]
@@ -298,28 +296,31 @@ class TestBuySellAPI:
             if data == "unKnow" or data == "API_Know":
                 assert response.status_code == 201
                 #on vérifie que asset et buy on été créer et que wallet est plus cher qu'avant
-                wallet1 = Wallet.objects.filter(user=user)
+                wallet1 = Wallet.objects.get(user=user)
+                crypto = Crypto.objects.get(wallet=wallet)
+                bourse = Bourse.objects.get(wallet=wallet)
+                print(f"wallet1 = {wallet1.amount} / Crypto : {crypto.amount} / Bourse : {bourse.amount}")
                 print(response.data)
                 assert Buy.objects.filter(ticker=buy[data]["ticker"],wallet=wallet).exists()
                 assert Asset.objects.filter(ticker=buy[data]["ticker"],wallet=wallet).exists()
-                asset = Asset.objects.filter(ticker=buy[data]["ticker"],wallet=wallet)
+                asset = Asset.objects.get(ticker=buy[data]["ticker"],wallet=wallet)
                 print(asset)
-                assert asset.number == buy[data]['number_buy']
+                assert asset.number == float(buy[data]['number_buy'])
                 assert wallet1.amount > wallet.amount
             else :
                 assert response.status_code == 400
         #On vérifie que les sous catégories ont été créer
         assert Crypto.objects.filter(wallet=wallet).exists()
         assert Bourse.objects.filter(wallet=wallet).exists()
-        wallet1 = Wallet.objects.filter(user=user)
+        wallet1 = Wallet.objects.get(user=user)
         #Delete
         buy = Buy.objects.filter(ticker=buy["API_Know"]["ticker"],wallet=wallet)
         url = reverse('delete_buy', kwargs={'pk': buy.id})
         api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
         response = api_client.delete(url,format='json')
         assert response.status_code == 204
-        assert Buy.objects.filter(ticker=buy["API_Know"]["ticker"],wallet=wallet).exist()==False
-        wallet2 = Wallet.objects.filter(user=user)
+        assert not Buy.objects.filter(ticker=buy["API_Know"]["ticker"],wallet=wallet).exists()
+        wallet2 = Wallet.objects.get(user=user)
         assert wallet1 > wallet2
     '''
     #post puis delete 

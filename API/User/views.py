@@ -14,7 +14,7 @@ import pyotp
 from django.utils import timezone
 from django.conf import settings
 from itsdangerous import URLSafeSerializer
-from Wallet.models import Wallet
+from Wallet.models import Wallet, Crypto, Bourse, Cash, RealEstate
 
 class UserViewset(ModelViewSet): 
     serializer_class=UserSerializer
@@ -34,7 +34,13 @@ class UserViewset(ModelViewSet):
         # Créer les paramètres de l'utilisateur après la création de l'utilisateur
         Setting.objects.create(user=user)
         # Créer un Wallet 
-        Wallet.objects.create(user=user,amount=0)
+        wallet = Wallet.objects.create(user=user,amount=0)
+        # Créer les sous Catégories 
+        Crypto.objects.create(type='Crypto',wallet = wallet)
+        Bourse.objects.create(type='Bourse',wallet = wallet)
+        Cash.objects.create(type='Cash',wallet = wallet)
+        RealEstate.objects.create(wallet=wallet)
+
 
 
 class SettingViewset(ModelViewSet):

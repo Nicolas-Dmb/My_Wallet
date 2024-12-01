@@ -14,9 +14,9 @@ class Wallet(models.Model):
     @transaction.atomic
     def maj_amount(self):
         try:
-            Boursecategorie = Bourse.objects.filter(wallet=self)
-            Cryptocategorie = Crypto.objects.filter(wallet=self)
-            Cashcategorie = Cash.objects.filter(wallet=self)
+            Boursecategorie = Bourse.objects.get(wallet=self)
+            Cryptocategorie = Crypto.objects.get(wallet=self)
+            Cashcategorie = Cash.objects.get(wallet=self)
         except : 
             return "error sur les catégories"
         self.amount = 0
@@ -38,7 +38,7 @@ class Categories(models.Model):
         Crypto = 'Crypto',
         Cash = 'Cash', 
     wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE)
-    amount = models.FloatField()
+    amount = models.FloatField(default=0)
     date = models.DateField(default=now)
     type = models.CharField(max_length=10, choices=CateList.choices, blank=False)
 
@@ -50,58 +50,45 @@ class Categories(models.Model):
     
     @transaction.atomic
     def maj_SubWallet(self, categorie):
-        if isinstance(categorie, Bourse):
+        print("passage ici")
+        if categorie == 'Bourse':
+            print("c'est une bourse")
             try : 
                 assets = Asset.objects.filter(wallet = self.wallet, category='Bourse')
             except :
                 return "Aucun asset trouvé pour cette catégorie"
-            self.amout = 0
-            categorie.amount_action = 0
-            categorie.amount_etf = 0
-            categorie.amount_forex = 0
-            categorie.amount_obligation = 0
-            categorie.amount_matieres_premieres = 0
             for asset in assets:
                 self.amount += (asset.actual_price * asset.number)
-                try : 
+                if BourseDetail.objects.filter(asset=asset).exists():
                     detail = BourseDetail.objects.filter(asset=asset).first()
-                except : 
-                    pass
-                if detail.sous_category == "Action":
-                    categorie.amount_action += (asset.actual_price * asset.number)
-                elif detail.sous_category == "ETF":
-                    categorie.amount_etf += (asset.actual_price * asset.number)
-                elif detail.sous_category == "Forex":
-                    categorie.amount_forex += (asset.actual_price * asset.number)
-                elif detail.sous_category == "Matieres_Premieres":
-                    categorie.amount_matieres_premieres += (asset.actual_price * asset.number)
-        elif isinstance(categorie, Crypto):
+                    if detail.sous_category == "Action":
+                        categorie.amount_action += (asset.actual_price * asset.number)
+                    elif detail.sous_category == "ETF":
+                        categorie.amount_etf += (asset.actual_price * asset.number)
+                    elif detail.sous_category == "Forex":
+                        categorie.amount_forex += (asset.actual_price * asset.number)
+                    elif detail.sous_category == "Matieres_Premieres":
+                        categorie.amount_matieres_premieres += (asset.actual_price * asset.number)
+        elif categorie=='Crypto':
+            print("c'est une crypto")
             try : 
                 assets = Asset.objects.filter(wallet = self.wallet, category='Bourse')
             except :
                 return "Aucun asset trouvé pour cette catégorie"
-            self.amout = 0
-            categorie.amount_btc = 0
-            categorie.amount_eth = 0
-            categorie.amount_nft = 0
-            categorie.amount_stablecoins = 0
-            categorie.amount_altcoins = 0
             for asset in assets:
                 self.amount += (asset.actual_price * asset.number)
-                try : 
+                if CryptoDetail.objects.filter(asset=asset).exists(): 
                     detail = CryptoDetail.objects.filter(asset=asset).first()
-                except : 
-                    pass
-                if detail.sous_category == "BTC":
-                    categorie.amount_btc += (asset.actual_price * asset.number)
-                elif detail.sous_category == "ETF":
-                    categorie.amount_eth += (asset.actual_price * asset.number)
-                elif detail.sous_category == "Stablecoins":
-                    categorie.amount_stablecoins += (asset.actual_price * asset.number)
-                elif detail.sous_category ==  "Altcoins":
-                    categorie.amount_altcoins += (asset.actual_price * asset.number)
-                elif detail.sous_category == "NFT":
-                    categorie.amount_nft += (asset.actual_price * asset.number)
+                    if detail.sous_category == "BTC":
+                        categorie.amount_btc += (asset.actual_price * asset.number)
+                    elif detail.sous_category == "ETF":
+                        categorie.amount_eth += (asset.actual_price * asset.number)
+                    elif detail.sous_category == "Stablecoins":
+                        categorie.amount_stablecoins += (asset.actual_price * asset.number)
+                    elif detail.sous_category ==  "Altcoins":
+                        categorie.amount_altcoins += (asset.actual_price * asset.number)
+                    elif detail.sous_category == "NFT":
+                        categorie.amount_nft += (asset.actual_price * asset.number)
         self.date = timezone.now()
         self.save()
         #On met à jour le montant du wallet
@@ -161,22 +148,22 @@ class Categories(models.Model):
 
 class Bourse(Categories):
     #sous catégories
-    amount_action = models.FloatField()
-    amount_etf = models.FloatField()
-    amount_forex = models.FloatField()
-    amount_obligation = models.FloatField()
-    amount_matieres_premieres = models.FloatField()
+    amount_action = models.FloatField(default=0)
+    amount_etf = models.FloatField(default=0)
+    amount_forex = models.FloatField(default=0)
+    amount_obligation = models.FloatField(default=0)
+    amount_matieres_premieres = models.FloatField(default=0)
 
     def __str__(self):
         return "Bourse sous comptes"
 
 class Crypto(Categories):
     #sous catégories
-    amount_btc = models.FloatField()
-    amount_eth = models.FloatField()
-    amount_nft = models.FloatField()
-    amount_stablecoins = models.FloatField()
-    amount_altcoins = models.FloatField()
+    amount_btc = models.FloatField(default=0)
+    amount_eth = models.FloatField(default=0)
+    amount_nft = models.FloatField(default=0)
+    amount_stablecoins = models.FloatField(default=0)
+    amount_altcoins = models.FloatField(default=0)
     
     def __str__(self):
         return "Cryptos sous comptes"
@@ -184,13 +171,13 @@ class Crypto(Categories):
 #cash Account 
 class Cash(Categories):
         #sous catégories
-    amount_pea = models.FloatField()
-    amount_cto = models.FloatField()    
-    amount_Ass_Vie = models.FloatField()
-    amount_CSL_LEP = models.FloatField()
-    amount_CC = models.FloatField()
-    amount_Livret_A = models.FloatField()
-    amount_autre = models.FloatField()
+    amount_pea = models.FloatField(default=0)
+    amount_cto = models.FloatField(default=0)    
+    amount_Ass_Vie = models.FloatField(default=0)
+    amount_CSL_LEP = models.FloatField(default=0)
+    amount_CC = models.FloatField(default=0)
+    amount_Livret_A = models.FloatField(default=0)
+    amount_autre = models.FloatField(default=0)
 
 # tous les assets uniques de l'user : 
 class Asset(models.Model):
@@ -227,7 +214,7 @@ class Asset(models.Model):
         else :
             categorie = Bourse.objects.create(wallet=self.wallet, type='Bourse')
         categorie.save()
-        categorie.maj_SubWallet(categorie)
+        categorie.maj_SubWallet(categorie.type)
 
     @transaction.atomic
     def get_new_price(self):
@@ -242,38 +229,45 @@ class Asset(models.Model):
         return True
     
     # dès qu'il y a un buy sur nouvel asset du wallet ca passe ici si API_know sinon par serializer
+    @classmethod
     @transaction.atomic
-    def new_asset(self, ticker, number, name, wallet,date):
-        print("ca passe ici")
-        self.wallet = wallet
-        self.number = number
-        try : 
+    def new_asset(cls, ticker, number, name, wallet, date):
+        try:
             info = Asset_data.objects.get(ticker=ticker)
             info.maj_asset()
-        except : 
+            api_know = True
+        except:
             return False
-        self.api_know = True
-        self.name = name
-        self.type = info.type
-        self.actual_price = info.last_value
-        self.currency = info.currency
-        self.category = info.category
-        self.ticker = ticker
-        self.country = info.country
-        self.sector = info.sector
-        self.company = info.company
-        self.save()
-        # On vient mettre a jour les wallets par catégories
-        HistoricalWallet.NewValue(self.category,date,self.actual_price*self.number,self,self.ticker,self.wallet)
+
+        asset = cls.objects.create(
+            wallet=wallet,
+            number=number,
+            name=name,
+            api_know=api_know,
+            type=info.type if api_know else None,
+            actual_price=info.last_value if api_know else None,
+            currency=info.currency if api_know else None,
+            category=info.category if api_know else None,
+            ticker=ticker,
+            country=info.country if api_know else None,
+            sector=info.sector if api_know else None,
+            company=info.company if api_know else None,
+        )
+
+        # Met à jour les wallets par catégorie
+        HistoricalWallet.NewValue(asset.category, date, asset.actual_price * asset.number, asset, ticker, wallet)
+
+        # Gestion des sous-catégories
         try:
-            if self.category == 'Crypto':
-                categories = Crypto.objects.get(wallet=self.wallet)
-            else :
-                categories = Bourse.objects.get(wallet=self.wallet)
+            if asset.category == 'Crypto':
+                categories = Crypto.objects.get(wallet=wallet)
+            else:
+                categories = Bourse.objects.get(wallet=wallet)
         except (Crypto.DoesNotExist, Bourse.DoesNotExist):
-            self.new_SubWallet()
+            print(f'asset: {asset}')
+            asset.new_SubWallet()
             return True
-        categories.maj_SubWallet(self.category)
+        categories.maj_SubWallet(asset.category)
         return True
     
     #Si buy ou sell 
@@ -332,33 +326,35 @@ class Asset(models.Model):
         categories.maj_SubWallet(self.category)
         return
     #create sans Yfinance :
+    @classmethod
     @transaction.atomic
-    def create_asset_withoutAPI(self,wallet, api_know, name, type, price_buy, currency, categories, country, sector, company, ticker, date, number):
-        self.wallet = wallet
-        self.api_know = False
-        self.name = name
-        self.type = type
-        self.actual_price = price_buy
-        self.currency = currency
-        self.category = categories
-        self.ticker = ticker
-        self.country = country
-        self.sector = sector
-        self.company = company
-        self.number = number
-        self.save()
+    def create_asset_withoutAPI(cls ,wallet, name, type, price_buy, currency, categories, country, sector, company, ticker, date, number):
+        asset = cls.objects.create(
+            wallet = wallet,
+            api_know = False,
+            name = name,
+            type = type,
+            actual_price = price_buy,
+            currency = currency,
+            category = categories,
+            ticker = ticker,
+            country = country,
+            sector = sector,
+            company = company,
+            number = number,
+        )
         #on créer un historique 
-        HistoricalWallet.NewValue(self.category,date,price_buy*self.number,self,ticker,wallet)
+        HistoricalWallet.NewValue(asset.category,date,price_buy*asset.number,asset,ticker,wallet)
         # On vient mettre a jour les wallets par catégories
         try:
-            if self.category == 'Crypto':
-                categories = Crypto.objects.get(wallet=self.wallet)
+            if asset.category == 'Crypto':
+                categories = Crypto.objects.get(wallet=asset.wallet)
             else :
-                categories = Bourse.objects.get(wallet=self.wallet)
+                categories = Bourse.objects.get(wallet=asset.wallet)
         except:
-            self.new_SubWallet()
+            asset.new_SubWallet()
             return 
-        categories.maj_SubWallet(self.category)
+        categories.maj_SubWallet(asset.category)
         return
 
 
@@ -398,9 +394,9 @@ class Buy(models.Model):
             else:
                 asset.maj_asset_withoutAPI(asset.actual_price, self.date_buy,self.number_buy)
         else : #pour les asset à créer
-            response = Asset.new_asset(self, self.ticker, self.number_buy, self.name, self.wallet, self.date_buy)
+            response = Asset.new_asset(self.ticker, self.number_buy, self.name, self.wallet, self.date_buy)
             if response == False:#pour les asset dont l'api ne met pas à jour
-                Asset.create_asset_withoutAPI(self , self.wallet,False, self.name, type, self.price_buy, self.currency, categories, country, sector, company, self.ticker, self.date_buy, self.number_buy)
+                Asset.create_asset_withoutAPI(self.wallet, self.name, type, self.price_buy, self.currency, categories, country, sector, company, self.ticker, self.date_buy, self.number_buy)
             
     def __str__(self):
         return f"Buy : {self.wallet} / {self.name} / {self.ticker}"
@@ -519,7 +515,7 @@ class CashDetail(models.Model):
 
 class RealEstate(models.Model):
     wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE)
-    amount = models.FloatField()
+    amount = models.FloatField(default=0)
     date = models.DateField(default=now)
 
     def __str__(self):
@@ -655,13 +651,14 @@ class HistoricalWallet(models.Model):
     @transaction.atomic
     def NewValue(categorie,date,value,instance,ticker,wallet):
         print(date)
+        print(datetime.now().date())
         date_normalized = date - timedelta(days=date.weekday())
-        while date_normalized.date() < datetime.now().date():
+        while date_normalized < datetime.now().date():
             #on séléctionne le prix 
             try :
                 assetG = Asset_data.objects.get(ticker=ticker)
                 #si la date_normalized est plus d'un an en arrière alors on récupère OldValue
-                if date_normalized < datetime.now()- timedelta(days=365):
+                if date_normalized < datetime.now().date()- timedelta(days=365):
                     oldValue = OldValue.objects.filter(asset=assetG).order_by("-date").first()#on récupère la date la plus proche de date_normalized
                     value = oldValue.value
             except Asset_data.DoesNotExist:
@@ -669,13 +666,13 @@ class HistoricalWallet(models.Model):
                     #on selectionne le bon historicalPrice de la categorie
                     match categorie:
                         case 'Cash':
-                            self = HistoricalPrice.objects.filter(wallet=wallet,date_lte=date,cash=instance).order_by("-date").first()#on récupère la date la plus proche de date_normalized
+                            self = HistoricalPrice.objects.filter(wallet=wallet,date__lte=date,cash=instance).order_by("-date").first()#on récupère la date la plus proche de date_normalized
                         case 'Bourse':
-                            self = HistoricalPrice.objects.filter(wallet=wallet,date_lte=date,asset=instance).order_by("-date").first()#on récupère la date la plus proche de date_normalized
+                            self = HistoricalPrice.objects.filter(wallet=wallet,date__lte=date,asset=instance).order_by("-date").first()#on récupère la date la plus proche de date_normalized
                         case 'Crypto':
-                            self = HistoricalPrice.objects.filter(wallet=wallet,date_lte=date,asset=instance).order_by("-date").first()#on récupère la date la plus proche de date_normalized
+                            self = HistoricalPrice.objects.filter(wallet=wallet,date__lte=date,asset=instance).order_by("-date").first()#on récupère la date la plus proche de date_normalized
                         case 'Immo':
-                            self = HistoricalPrice.objects.filter(wallet=wallet,date_lte=date,RealEstate=instance).order_by("-date").first()#on récupère la date la plus proche de date_normalized
+                            self = HistoricalPrice.objects.filter(wallet=wallet,date__lte=date,RealEstate=instance).order_by("-date").first()#on récupère la date la plus proche de date_normalized
                     value = self.value
                 except HistoricalPrice.DoesNotExist:
                     #s'il n'est pas suivi et pas inscrit dans HistoricalPrice
@@ -717,7 +714,8 @@ class HistoricalWallet(models.Model):
                         sousHistorique.save()
                     except HistoricalImmo.DoesNotExist:
                         HistoricalImmo.objects.create(wallet=wallet,date=date_normalized,value=value)
-            date_normalized = date + timedelta(days=(7 - date.weekday()))
+            #date_normalized = date + timedelta(days=(7 - date.weekday()))
+            date_normalized += timedelta(weeks=1)
 
     # lors d'un modif prix d'un asset non suivie dont le prix mis à jour est plus ancien qu'une semaine
     # value est la différence entre le nouveau et l'ancien prix * nombre d'actif

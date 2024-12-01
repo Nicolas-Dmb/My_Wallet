@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from .models import Buy, Sells, Wallet, Asset, CryptoDetail, BourseDetail, Cash, CashDetail, Categories, RealEstate, RealEstateDetail, HistoricalWallet
+from .models import Buy, Sells, Wallet, Asset, CryptoDetail, BourseDetail, Cash, CashDetail, Categories, RealEstate, RealEstateDetail, HistoricalWallet, Bourse, Crypto
 from General.models import Asset as AssetGeneral
 from .serializers import BuySerializer, CryptoDetailSerializer, BourseDetailSerializer, CashDetailSerializer, SellSerializer, AssetSerializer, CashAccountSerializer, RealEstateDetailSerializer
 from rest_framework.viewsets import ModelViewSet
@@ -75,6 +75,8 @@ class BuyView(APIView):
                     serializerCash = CryptoDetailSerializer(data = data.get("cryptoDetail"))
                 if serializerCash.is_valid():
                     serializerCash.save(wallet=wallet, asset=asset)
+                crypto = Crypto.objects.get(wallet=wallet)
+                crypto.maj_SubWallet(crypto.type)
             except Exception as e:
                 return Response({"error":f"La création de CryptoDetail n'a pas pu se faire : {e}"}, status=status.HTTP_400_BAD_REQUEST)
         elif "bourseDetail" in data:
@@ -86,6 +88,8 @@ class BuyView(APIView):
                     serializerCash = BourseDetailSerializer(data = request.data("bourseDetail"))
                 if serializerCash.is_valid():
                     serializerCash.save(wallet=wallet, asset=asset)
+                bourse = Bourse.objects.get(wallet=wallet)
+                bourse.maj_SubWallet(bourse.type)
             except Exception as e:
                 return Response({"error":f"La création de BourseDetail n'a pas pu se faire:{e}"}, status=status.HTTP_400_BAD_REQUEST)
         #Gestion de CashDetail
@@ -99,6 +103,8 @@ class BuyView(APIView):
                     serializerCash = CashDetailSerializer(data=data)
                     if serializerCash.is_valid():
                         serializerCash.save(wallet = wallet)
+                cash = Cash.objects.get(wallet=wallet)
+                cash.maj_Cash()
             except Exception as e:
                 return Response({"error":f"La mise à jour du Cash n'a pas pu se faire: {e}"}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
