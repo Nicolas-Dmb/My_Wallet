@@ -5,7 +5,7 @@ from .models import Buy, Sells, Wallet, Asset, CryptoDetail, BourseDetail, Cash,
 from General.models import Asset as AssetGeneral
 from General.models import OneYearValue,OldValue
 from General.serializers import OneYearValueSerializer,OldValueSerializer
-from .serializers import BuySerializer, CryptoDetailSerializer, BourseDetailSerializer, CashDetailSerializer, SellSerializer, AssetSerializer, CashAccountSerializer, RealEstateDetailSerializer, CryptoCategorieSerializerDetail, BourseCategorieSerializerDetail, CashCategorieSerializerDetail, WalletSerializer, BuyHistoriqueSerializer, SellHistoriqueSerializer, RealEstateHistoriqueSerializer,RevenuAnnuelImmoSerializer, HistoriqueSerializer
+from .serializers import BuySerializer, CryptoDetailSerializer, BourseDetailSerializer, CashDetailSerializer, SellSerializer, AssetSerializer, CashAccountSerializer, RealEstateDetailSerializer, CryptoCategorieSerializerDetail, BourseCategorieSerializerDetail, CashCategorieSerializerDetail, WalletSerializer, BuyHistoriqueSerializer, SellHistoriqueSerializer, RealEstateHistoriqueSerializer,RevenuAnnuelImmoSerializer, HistoriqueSerializer,HistoriqueWalletSerializer, HistoriqueCashSerializer, HistoriqueBourseSerializer, HistoriqueCryptoSerializer, HistoriqueImmoSerializer
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import generics, views, status
 from rest_framework.views import APIView
@@ -21,7 +21,7 @@ class AmountCategories(APIView):
         wallet = Wallet.objects.get(user=request.user)
         #on récupère la catégorie souhaité 
         categorie = self.kwargs.get('categorie')
-        if categorie in ['crypto','course','cash','all']:
+        if categorie in ['crypto','bourse','cash','all']:
             try:
                 match categorie:
                     case 'crypto':
@@ -61,6 +61,10 @@ class ListAsset(APIView):
         categorie = self.kwargs.get('categorie') #Peut être Bourse Crypto Cash ou Immo
         results = []
         if categorie in ['crypto','bourse']:
+            if categorie == 'crypto':
+                categorie = 'Crypto'
+            else:
+                categorie = 'Bourse'
             assets = Asset.objects.filter(category=categorie, wallet=wallet)
             for asset in assets:
                 asset.get_new_price()
@@ -97,12 +101,14 @@ class ListAsset(APIView):
                 perf_unrealized = (asset.actual_price * asset_hold)-(average_buy*asset_hold)
                 
                 #Type 
-                if categorie == 'crypto':
-                    Detail = CryptoDetail.objects.filter(asset = asset)
-                else:
-                    Detail = BourseDetail.objects.filter(asset = asset)
+                Detail = None
+                if categorie == 'crypto' and CryptoDetail.objects.filter(asset = asset).exists():
+                    Detail = CryptoDetail.objects.get(asset = asset)
+                elif BourseDetail.objects.filter(asset = asset).exists():
+                    Detail = BourseDetail.objects.get(asset = asset)
                 #données de l'asset retournée 
                 asset_data = {
+                'id':asset.id,
                 'ticker': asset.ticker,
                 'average_buy': average_buy,
                 'average_sell': average_sell,
@@ -112,13 +118,15 @@ class ListAsset(APIView):
                 'asset_hold': asset_hold,
                 'nomber_buy':number_buy,
                 'number_sell':number_sell,
-                'type':Detail.sous_category,
+                'type':[Detail.sous_category if Detail else None],
                 }
+
                 results.append(asset_data)
         elif categorie == 'cash':
             Cashs = CashDetail.objects.filter(wallet = wallet)
             for cash in Cashs:
                 asset_data = {
+                'id':cash.id,
                 'bank': cash.bank,
                 'account': cash.account,
                 'amount': cash.amount,
@@ -129,6 +137,7 @@ class ListAsset(APIView):
             Immos = RealEstateDetail.objects.filter(realestate=realestate)
             for immo in Immos:
                 asset_data = {
+                'id':immo.id,
                 'type': immo.type,
                 'adresse': immo.adresse,
                 'buy_date': immo.buy_date,
@@ -139,7 +148,7 @@ class ListAsset(APIView):
                 'actual_value':immo.actual_value,
                 }
                 results.append(asset_data)
-        return Response(results)
+        return Response(results, status=status.HTTP_200_OK)
     
 
 class ListActifPassif(APIView):
@@ -184,7 +193,7 @@ class ListActifPassif(APIView):
                 somme_actif+=actif.actual_value
                 data['actif'].append(actif_data)
         data['total'].append(somme_actif-emprunt)
-        return Response(data)
+        return Response(data, status=status.HTTP_200_OK)
     
 
 class historiqueAchatVente(APIView):
@@ -219,10 +228,10 @@ class historiqueAchatVente(APIView):
                         "achats": serializer_buy.data,
                         "ventes": serializer_sell.data,
                     }
-                    return Response(data)
+                    return Response(data, status=status.HTTP_200_OK)
             else :
                 serializer =  RealEstateHistoriqueSerializer(amounts)
-                return Response(serializer)
+                return Response(serializer, status=status.HTTP_200_OK)
 
 class RevenuAnnuelImmo(APIView):
     permission_classes = (IsAuthenticated,)
@@ -231,8 +240,8 @@ class RevenuAnnuelImmo(APIView):
         wallet = Wallet.objects.get(user=request.user)
         immoGeneral = RealEstate.objects.filter(wallet=wallet)
         immos = RealEstateDetail.objects.filter(realestate=immoGeneral)
-        serializer = RevenuAnnuelImmoSerializer(immos)
-        return Response(serializer)
+        serializer = RevenuAnnuelImmoSerializer(instance = immos)
+        return Response(serializer, status=status.HTTP_200_OK)
 
 class MomentumPF(APIView):
     permission_classes = (IsAuthenticated,)
@@ -324,7 +333,7 @@ class MomentumPF(APIView):
                 'name':amount.name,
                 'value':Increase,
             })
-        return Response(data)
+        return Response(data, status=status.HTTP_200_OK)
 
 #permet de récupérer toutes les données propre à un Asset (Crypto, Bourse, Immo, Cash)
 class AssetData(APIView):
@@ -373,11 +382,11 @@ class AssetData(APIView):
                 'immo':serializer,
                 'historique':serializerHistorique,
             }
-            return Response(data)
+            return Response(data, status=status.HTTP_200_OK)
         elif categorie == 'cash':
             Cash = CashDetail.objects.get(wallet=wallet, id=id)
             serializer = CashAccountSerializer(Cash)
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         
         def getHistoricalPriceAPI(ticker):
             assetG = AssetGeneral.objects.get(ticker=ticker)
@@ -412,7 +421,7 @@ class AssetData(APIView):
                 'fiveYearPerf':fiveYearPerf,
                 'tenYearPerf':tenYearPerf,  
             }
-            return data
+            return Response(data, status=status.HTTP_200_OK)
         def getHistoricalPrice(ForeignKey, data):
             match ForeignKey:
                 case 'asset':
@@ -424,7 +433,7 @@ class AssetData(APIView):
             data = {
                 'historiques':historiques,
             }
-            return data
+            return Response(data, status=status.HTTP_200_OK)
 
 
 #donne les historiques de prix soit All, soit Crypto, Bourse, Cash ou Immo  
@@ -439,12 +448,17 @@ class PerformanceGlobal(APIView):
         match categorie:
             case 'all':
                 datas= HistoricalWallet.objects.filter(wallet=wallet).order_by('-date')
+                datas = HistoriqueWalletSerializer(instance = datas)
             case 'crypto':
                 datas= HistoricalCrypto.objects.filter(wallet=wallet).order_by('-date')
+                datas = HistoriqueCryptoSerializer(instance = datas)
             case 'bourse':
                 datas =HistoricalBourse.objects.filter(wallet=wallet).order_by('-date')
+                datas = HistoriqueBourseSerializer(instance = datas)
             case 'cash':
                 datas =HistoricalCash.objects.filter(wallet=wallet).order_by('-date')
+                datas = HistoriqueCashSerializer(instance = datas)
             case 'immo':
                 datas =HistoricalImmo.objects.filter(wallet=wallet).order_by('-date')
-        return Response(datas)
+                datas = HistoriqueImmoSerializer(instance = datas)
+        return Response(datas, status=status.HTTP_200_OK)

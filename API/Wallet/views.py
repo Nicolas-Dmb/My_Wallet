@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -245,31 +246,36 @@ class MajAsset(APIView):
 #Pour créer, supprimer ou modifier ou récupérer
 class CashAccount(ModelViewSet):
     permission_classes = [IsAuthenticated]
-    serializer = CashAccountSerializer
+    serializer_class = CashAccountSerializer
 
     def get_queryset(self):
         wallet = Wallet.objects.get(user=self.request.user)
         if self.action == "retrieve":
             return CashDetail.objects.get(wallet=wallet, id=self.kwargs.get('pk'))
-        return CashDetail.objects.get(wallet=wallet)
+        return CashDetail.objects.filter(wallet=wallet)
     
     def perform_create(self, serializer):
         wallet = Wallet.objects.get(user=self.request.user)
         HistoricalWallet.NewValue('Cash',timezone.now(),self.request.data.get('amount'),0,0,wallet)
-        return super().perform_update(serializer)
+        serializer = self.get_serializer(data=self.request.data)
+        if serializer.is_valid():
+            serializer.save(wallet=wallet)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response({"detail":"Les données transmisses sont incorrectes"},status=status.HTTP_400_BAD_REQUEST)
+        
     
     def perform_update(self, serializer):
         #on vérifie d'abord que c'est la donnée addremove qui est envoyé alors on fera que une transaction atomique 
         wallet = Wallet.objects.get(user=self.request.user)
         id = self.kwargs.get("pk")
-        cashDetail = CashDetail.objects.filter(wallet=wallet,id=id)
+        cashDetail = CashDetail.objects.get(wallet=wallet,id=id)
         if "addremove" in self.request.data :
             cashDetail.cash_maj_Amount(amount=self.request.data.get("addremove"))
             return Response(status=status.HTTP_200_OK)
         # sinon on met le serializer à jour car c'esr le montant qui est direct modifié 
         # on met d'abord a jour HistoricalWallet
-        HistoricalWallet.NewPrice('Cash',timezone.now(),cashDetail.amount-self.request.data.get("amount"), wallet, 0)
-        serializer = serializer(cashDetail, partial=True)
+        HistoricalWallet.NewPrice('Cash',timezone.now(),cashDetail.amount-self.request.data.get("amount"), wallet)
+        serializer = self.get_serializer(cashDetail,data=self.request.data ,partial=True)
         if serializer.is_valid():
             serializer.save()
         return Response(serializer.data)
@@ -285,14 +291,13 @@ class RealEstateView(APIView):
         else :
             realestate = RealEstate.objects.create(wallet=wallet, amount=0)
         #Création du Buy
-        try :
-            serializer = RealEstateDetailSerializer(data = request.data)
-            if serializer.is_valid():
-                print("passage ici")
-                serializer.save(realestate = realestate)
-                HistoricalWallet.NewValue('Immo',request.data.get('buy_date'),request.data.get('actual_value')-request.data.get('resteApayer'),serializer.instance,0,wallet)
-        except Exception as e:
-            return Response({"error":f"Impossible d'enregristrer les données : {e}"}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = RealEstateDetailSerializer(data = request.data)
+        if serializer.is_valid():
+            print("passage ici")
+            serializer.save(realestate = realestate)
+            HistoricalWallet.NewValue('Immo',request.data.get('buy_date'),request.data.get('actual_value')-request.data.get('resteApayer'),serializer.instance,0,wallet)
+        else: 
+            return Response({"error":f"Impossible d'enregristrer les données {serializer.errors}"}, status=status.HTTP_400_BAD_REQUEST)
         realestate.maj_amount()
         #Gestion de CashDetail
         if "cashDetail" in request.data: 
@@ -309,7 +314,7 @@ class RealEstateView(APIView):
             except Exception as e:
                 return Response({"error":f"La mise à jour du Cash n'a pas pu se faire {e}"}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
+
     #dans patch les valeur actual_value et resteApayer sont envoyée elles seront traitée par la transaction atomique et le reste via le serializer
     def patch(self, request, *args, **kwargs):
         wallet = Wallet.objects.get(user=request.user)
@@ -324,12 +329,12 @@ class RealEstateView(APIView):
             resteApayer=request.data.get('resteApayer')
         try :
             realestatedetail.maj_realEstateDetail(actual_value, resteApayer)
-            serializer = RealEstateDetailSerializer(realestatedetail, partial=True)
+            serializer = RealEstateDetailSerializer(realestatedetail,data=request.data ,partial=True)
             if serializer.is_valid():
                 serializer.save()
         except Exception as e:
             return Response({"error":f"Impossible de mettre à jour les données : {e}"}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(status=status.HTTP_201_CREATED)
+        return Response(status=status.HTTP_200_OK)
     
 
 

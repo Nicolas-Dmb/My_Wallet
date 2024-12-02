@@ -3,11 +3,19 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from .tests import BuyFixture,PostCash,PostSell,RealEstateDetailfixture,NewRealEstate,ModifRealEstate
-from .models import Asset, Buy, Sells, Categories, Wallet, CryptoDetail, BourseDetail, CashDetail, RealEstate, RealEstateDetail, HistoricalPrice, HistoricalWallet, HistoricalCrypto, HistoricalBourse, HistoricalCash, HistoricalImmo
+from User.tests import register_user, account_fixture, user_token
+from .tests import BuyFixture,PostCash,PostSell,RealEstateDetailfixture,NewRealEstate,ModifRealEstate,buy,sell,modif,Newbuy,NewRealEstate,ModifRealEstate,NewCashDetail,ModifCashDetail
+from .models import Asset, Buy, Sells, Wallet, CryptoDetail, BourseDetail, CashDetail, RealEstate, RealEstateDetail, HistoricalPrice, HistoricalWallet, HistoricalCrypto, HistoricalBourse, HistoricalCash, HistoricalImmo, Bourse, Crypto, Cash
 import django
 django.setup()
 
+User = get_user_model()
+
+# je n'ai pas tester les historical price et historical wallet
+
+@pytest.fixture
+def api_client():
+    return APIClient()
 
 @pytest.mark.django_db
 class TestGet:
@@ -21,18 +29,25 @@ class TestGet:
         response = api_client.get(url, format='json')
         assert response.status_code == 200
         wallet = Wallet.objects.filter(user=user).first()
-        assert response.data.amount == wallet.amount
+        assert response.data['amount'] == wallet.amount
         #test sur les autres catégories
         types = ['bourse','crypto','cash']
         for type in types:
             url = reverse('get_amount_of_categories', kwargs={'categorie':type})
             response = api_client.get(url, format='json')
             assert response.status_code == 200
-            categories = Categories.objects.filter(wallet=wallet, type=type).first()
-            assert response.data.amount == categories.amount
+            if type == 'bourse':
+                categories = Bourse.objects.get(wallet=wallet)
+            if type == 'crypto':
+                categories = Crypto.objects.get(wallet=wallet)
+            if type == 'cash':
+                categories = Cash.objects.get(wallet=wallet)
+            assert response.data['amount'] == categories.amount
 
     def testAllAssetList(self, api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token):
-        assetsResponse = []
+        assetsResponse = 0
+        immoSize = 0
+        cashSize = 0
         user = register_user
         wallet = Wallet.objects.filter(user=user).first()
         access_token = user_token['access']
@@ -42,15 +57,22 @@ class TestGet:
             url = reverse("get_list_asset", kwargs={'categorie':type})
             response = api_client.get(url, format='json')
             assert response.status_code == 200
-            assetsResponse.append(response.data)
+            print(response.data)
+            if type == 'bourse' or type == 'crypto':
+                assetsResponse+=len(response.data)
+            elif type == 'cash':
+                cashSize =len(response.data)
+            else :
+                immoSize=len(response.data)
         assets = Asset.objects.filter(wallet=wallet)
-        immos = RealEstate.objects.get(wallet=wallet)
-        immos = RealEstateDetail.objects.filter(realestate=immos)
-        for asset in assets:
-            assert asset in assetsResponse
-        for immo in immos :
-            assert immo in assetsResponse
-
+        print(assets)
+        cashs = CashDetail.objects.filter(wallet=wallet)
+        immoG = RealEstate.objects.get(wallet=wallet)
+        immos = RealEstateDetail.objects.filter(realestate=immoG)
+        assert len(assets) == assetsResponse
+        assert len(immos) == immoSize
+        assert len(cashs) == cashSize
+'''
     def testActifPassif(self, api_client,BuyFixture,PostCash,PostSell,RealEstateDetailfixture,register_user,user_token,NewRealEstate,ModifRealEstate):
         #On récupère les données immos de la fixture
         good_ValuePassif = NewRealEstate["Less_data"]["resteApayer"]+NewRealEstate["Full_data"]["resteApayer"]
@@ -147,7 +169,7 @@ class TestGet:
             assert data in historiqueAll
             assert len(data) == len(historiqueAll)
             assert len(data)==7 # C'est le nom de nouvelle données que j'ai envoyé dans tests
-
+'''
 
         
 

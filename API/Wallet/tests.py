@@ -11,6 +11,7 @@ django.setup()
 
 User = get_user_model()
 
+# je n'ai pas tester les historical price et historical wallet
 
 @pytest.fixture
 def api_client():
@@ -161,6 +162,7 @@ def NewRealEstate():# Vérifie que actual value se mette à jour en même temps
         "resteApayer":170000,
         "rate":2.2,
         "duration":20,
+        "actual_value":250000,
         },
         "Less_data":{
         "type":'Appartement',
@@ -170,13 +172,14 @@ def NewRealEstate():# Vérifie que actual value se mette à jour en même temps
         "apport":10000,
         "resteApayer":170000,
         "duration":20,
+        "actual_value":250000,
         }
     }
 @pytest.fixture
 def ModifRealEstate():# Vérifie que actual value se mette à jour en même temps
     return {
         "Full_data":{
-        "adresse":"12 rue Jean Jaures, Paris",
+        "adresse":"50 rue Jean Jaures, Paris",
         "actual_value":300000,
         },
         "Less_data":{
@@ -187,6 +190,7 @@ def ModifRealEstate():# Vérifie que actual value se mette à jour en même temp
         "resteApayer":170000,
         "rate":2.2,
         "actual_value":310000,
+        "adresse":"12 rue Jean Jaures, Paris",
         }
     }
 @pytest.fixture
@@ -202,7 +206,7 @@ def NewCashDetail():
             "account":"PEA",
             "amount":15000,
         },
-        "CT":{
+        "CTO":{
             "bank":"CA",
             "account":"CTO",
             "amount":2000,
@@ -211,7 +215,7 @@ def NewCashDetail():
 @pytest.fixture
 def ModifCashDetail():
     return{
-        "CSL_LEP":{
+        "LEP":{
             "bank":"Societe Générale",
             "addremove":2000,
         },
@@ -256,24 +260,28 @@ def PostSell(api_client,sell,register_user,user_token):
 def PostCash(api_client,register_user,user_token,NewCashDetail):
         user = register_user
         access_token = user_token['access']
+        datas=[]
         url = reverse('cash-list')
         api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
-        list = ["LEP","PEA","CT"]
+        list = ["LEP","PEA","CTO"]
         for accounttype in list:
             response = api_client.post(url, NewCashDetail[accounttype], format='json')
             assert response.status_code == 201
+            datas.append(response.data)
+        return datas
+         
 
 @pytest.fixture
 def RealEstateDetailfixture(api_client,NewRealEstate,ModifRealEstate, register_user,user_token):
         user = register_user
         access_token = user_token['access']
         list = ["Full_data","Less_data"]
-        url = reverse('new_realEstate')
         api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
         for data in list :
+            url = reverse('new_realEstate')
             response = api_client.post(url,NewRealEstate[data],format='json')
             assert response.status_code == 201
-            immo = RealEstateDetail.objects.get(NewRealEstate[data]["adresse"])
+            immo = RealEstateDetail.objects.get(adresse=NewRealEstate[data]["adresse"])
             assert immo.actual_value == NewRealEstate[data]["buy_price"]
             #Modif
             url = reverse('maj_realEstate', kwargs={'pk': immo.id})
@@ -397,6 +405,7 @@ class TestBuySellAPI:
                 if data == "unKnow":
                     categoriesCryptoAprès = Crypto.objects.get(wallet=wallet, type='Crypto')
                     assert categoriesCryptoAprès.amount > categoriesCryptoAvant.amount
+                    assert HistoricalPrice.objects.filter(asset=asset).exists()
                 else :
                     categoriesAprès = Bourse.objects.get(wallet=wallet, type='Bourse')
                     assert categoriesAprès.amount > categoriesAvant.amount
@@ -416,60 +425,75 @@ class TestBuySellAPI:
         access_token = user_token['access']
         url = reverse('cash-list')
         api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
-        list = ["LEP","PEA","CT"]
+        list = ["LEP","PEA","CTO"]
         for accounttype in list:
             response = api_client.post(url, NewCashDetail[accounttype], format='json')
             assert response.status_code == 201
             wallet = Wallet.objects.get(user=user)
-            cashDetail=CashDetail.objects.filter(wallet=wallet,account=NewCashDetail[accounttype]["account"])
+            cashDetail=CashDetail.objects.get(wallet=wallet,account=NewCashDetail[accounttype]["account"])
             assert NewCashDetail[accounttype]["bank"]== cashDetail.bank
             assert NewCashDetail[accounttype]["amount"]== cashDetail.amount
-'''
+
+    def testModifCashDetail(self, api_client,register_user,user_token,ModifCashDetail,PostCash, NewCashDetail):
+        user = register_user
+        wallet = Wallet.objects.get(user=user)
+        access_token = user_token['access']
+        cashs = PostCash
+        modif = "LEP"
+        count = 0
+        for cash in cashs:
+            if count==1:
+                modif = "PEA"
+            if count == 2:
+                modif = "CTO"
+            cash = CashDetail.objects.get(wallet=wallet,account=cash['account'], bank=cash['bank'])
+            url = reverse('cash-detail', kwargs={'pk': cash.id})
+            api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
+            response = api_client.patch(url, ModifCashDetail[modif], format='json')
+            assert response.status_code == 200
+            wallet = Wallet.objects.get(user=user)
+            cashDetail=CashDetail.objects.get(wallet=wallet,account=cash.account)
+            if modif == "LEP" or modif == "PEA":
+                assert int(NewCashDetail[modif]["amount"])+int(ModifCashDetail[modif]["addremove"])== cashDetail.amount
+                assert NewCashDetail[modif]["bank"] == cashDetail.bank
+            else:
+                assert ModifCashDetail[modif]["amount"]== cashDetail.amount
+                assert NewCashDetail[modif]["bank"] != cashDetail.bank
+
+            #Je ne peux pas tester cette partie car il y a un delai d'une semaine avant que les données ne se stocke dans HistoricalWallet
+            #print(HistoricalWallet.objects.get(wallet=wallet))
+            #assert HistoricalWallet.objects.filter(wallet=wallet, value=cash.amount).exists()
+            #assert HistoricalCash.objects.filter(wallet=wallet, value=cash.amount).exists()
+
+            #essayer de supprimer le fichier
+            response = api_client.delete(url, format='json')
+            assert response.status_code == 204
+            count+=1
+
+    #La modif et la création
     def testRealEstateDetail(self,api_client,NewRealEstate,ModifRealEstate, register_user,user_token):
         user = register_user
         wallet = Wallet.objects.get(user=user)
         access_token = user_token['access']
         list = ["Full_data","Less_data"]
-        url = reverse('new_realEstate')
         api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
         for data in list :
+            url = reverse('new_realEstate')
             response = api_client.post(url,NewRealEstate[data],format='json')
+            print(response.data)
             assert response.status_code == 201
             realEstate = RealEstate.objects.get(wallet=wallet)
-            print( RealEstateDetail.objects.filter(realestate = realEstate))
             assert  RealEstateDetail.objects.filter(realestate = realEstate).exists()
-            immo = RealEstateDetail.objects.get(realestate = realEstate)
+            immo = RealEstateDetail.objects.get(realestate = realEstate, adresse = NewRealEstate[data]["adresse"])
             assert immo.actual_value == NewRealEstate[data]["buy_price"]
             #Modif
             url = reverse('maj_realEstate', kwargs={'pk': immo.id})
             response = api_client.patch(url,ModifRealEstate[data],format='json')
             assert response.status_code == 200
-            immo = RealEstateDetail.objects.get(NewRealEstate[data]["adresse"])
+            immo = RealEstateDetail.objects.get(adresse = ModifRealEstate[data]["adresse"])
             assert ModifRealEstate[data]["actual_value"]==immo.actual_value
 
-    def testModifCashDetail(self, api_client,register_user,user_token,ModifCashDetail,PostCash):
-        user = register_user
-        wallet = Wallet.objects.get(user=user)
-        access_token = user_token['access']
-        cashs = PostCash
-        for cash in cashs:
-            url = reverse('cash-detail', kwargs={'pk': cash.id})
-            api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
-            response = api_client.patch(url, ModifCashDetail[cash], format='json')
-            assert response.status_code == 200
-            wallet = Wallet.objects.get(user=user)
-            cashDetail=CashDetail.objects.filter(wallet=wallet,account=NewCashDetail[cash]["account"])
-            assert NewCashDetail[cash]["bank"]== cashDetail.bank
-            if cash == "CSL_LEP" or cash == "PEA":
-                assert NewCashDetail[cash]["amount"]== cashDetail.amount+cashs[cash]["amount"]
-            else:
-                assert NewCashDetail[cash]["amount"]== cashDetail.amount
-            assert HistoricalWallet.objects.filter(cash=cash, value=cash.value).exists()
-            assert HistoricalCash.objects.filter(wallet=wallet, value=cash.value).exists()
-            # essayer de supprimer le fichier 
-            response = api_client.delete(url, format='json')
-            assert response.status_code == 204
-'''
+    
 
 
 #Création Buy et Création Sell (Not API_know)

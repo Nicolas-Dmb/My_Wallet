@@ -6,6 +6,7 @@ from General.models import OneYearValue, OldValue
 from datetime import timedelta, datetime
 from django.utils import timezone
 from django.utils.timezone import now
+
 class Wallet(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     amount = models.FloatField()
@@ -22,9 +23,6 @@ class Wallet(models.Model):
         self.amount = 0
         self.date = timezone.now()
         self.amount = Boursecategorie.amount + Cryptocategorie.amount + Cashcategorie.amount
-        print(f"Boursecategorie.amount:{Boursecategorie.amount}")
-        print(f"Cryptocategorie.amount:{Cryptocategorie.amount}")
-        print(f"Cashcategorie.amount:{Cashcategorie.amount}")
         try:
             estate = RealEstate.objects.get(wallet=self)
         except: 
@@ -60,7 +58,6 @@ class Categories(models.Model):
             except :
                 return "Aucun asset trouvé pour cette catégorie"
             for asset in assets:
-                print("ca passe dans maj_SubWallet Bourse")
                 self.amount += (asset.actual_price * asset.number)
                 if BourseDetail.objects.filter(asset=asset).exists():
                     detail = BourseDetail.objects.filter(asset=asset).first()
@@ -78,7 +75,6 @@ class Categories(models.Model):
             except :
                 return "Aucun asset trouvé pour cette catégorie"
             for asset in assets:
-                print("ca passe dans maj_SubWallet Crypto")
                 self.amount += (asset.actual_price * asset.number)
                 if CryptoDetail.objects.filter(asset=asset).exists(): 
                     detail = CryptoDetail.objects.filter(asset=asset).first()
@@ -227,7 +223,7 @@ class Asset(models.Model):
             info.maj_asset()
         except : 
             return False
-        HistoricalWallet.NewPrice(self.category,info.date_value,self.actual_price-info.last_value, self.wallet, self)
+        HistoricalWallet.NewPrice(self.category,info.date_value,self.actual_price-info.last_value, self.wallet)
         self.actual_price = info.last_value
         self.date_price = info.date_value
         return True
@@ -313,7 +309,6 @@ class Asset(models.Model):
         elif actual_price: 
             HistoricalWallet.NewPrice(self.category,date,float(self.actual_price)-float(actual_price), self.wallet)
         #met à jour l'historique
-        print(f"date_price : {self.date_price}")
         HistoricalPrice.objects.create(wallet=self.wallet,asset=self, date=self.date_price, value=self.actual_price)
         if(date>self.date_price):
             self.actual_price = actual_price
@@ -511,8 +506,9 @@ class CashDetail(models.Model):
     def cash_maj_Amount(self, amount='undifined'):
         HistoricalPrice.objects.create(wallet=self.wallet,cash=self, date=timezone.now(), value=self.amount)
         if amount != 'undifined':
-            HistoricalWallet.NewPrice('Cash',timezone.now(),self.amount-amount, self.wallet, 0)
+            HistoricalWallet.NewPrice('Cash',timezone.now(),self.amount-amount, self.wallet)
             self.amount += amount
+            self.save()
         try:
             categorie = Cash.objects.get(wallet=self.wallet)
             categorie.maj_Cash()
@@ -592,15 +588,15 @@ class RealEstateDetail(models.Model):
     charges_annuel = models.FloatField(blank=True, null=True)
     taxe = models.FloatField(blank=True, null=True)
     #emprunt 
-    emprunt_costs = models.FloatField()
+    emprunt_costs = models.FloatField(default=0)
     resteApayer=models.FloatField()
     rate = models.FloatField(blank=True, null=True)
     duration = models.IntegerField(blank=True, null=True)
     #valeur saisie par l'user
     actual_value = models.FloatField()
-    actual_date = models.DateField(default=now)
+    actual_date = models.DateField(default=timezone.now().date())
     #propriété
-    type_own = models.CharField(choices=OwnTypes.choices,max_length=50)
+    type_own = models.CharField(default='Propre',choices=OwnTypes.choices,max_length=50)
     part_own = models.IntegerField(blank=True, null=True)
 
     def __str__(self): 
@@ -610,18 +606,18 @@ class RealEstateDetail(models.Model):
     @transaction.atomic
     def maj_realEstateDetail(self, actual_value='undifined', resteApayer='undifined'):
         if actual_value != 'undifined' and resteApayer != 'undifined':
-            HistoricalWallet.NewPrice('Immo',timezone.now(),(self.actual_value-self.resteApayer)-(actual_value-resteApayer), self.realestate.wallet, 0)
+            HistoricalWallet.NewPrice('Immo',timezone.now(),(self.actual_value-self.resteApayer)-(actual_value-resteApayer), self.realestate.wallet)
             HistoricalPrice.objects.create(wallet=self.realestate.wallet,RealEstate=self, date=self.actual_date, value=self.actual_value)
             self.actual_value = actual_value
-            self.actual_date = timezone.now()
+            self.actual_date = timezone.now().date()
             self.resteApayer = resteApayer
         elif actual_value != 'undifined':
-            HistoricalWallet.NewPrice('Immo',timezone.now(),(self.actual_value-self.resteApayer)-(actual_value-self.resteApayer), self.realestate.wallet, 0)
+            HistoricalWallet.NewPrice('Immo',timezone.now(),(self.actual_value-self.resteApayer)-(actual_value-self.resteApayer), self.realestate.wallet)
             HistoricalPrice.objects.create(wallet=self.realestate.wallet,RealEstate=self, date=self.actual_date, value=self.actual_value)
             self.actual_value = actual_value
-            self.actual_date = timezone.now()
+            self.actual_date = timezone.now().date()
         elif resteApayer != 'undifined':
-            HistoricalWallet.NewPrice('Immo',timezone.now(),(self.actual_value-self.resteApayer)-(self.actual_value-resteApayer), self.realestate.wallet, 0)
+            HistoricalWallet.NewPrice('Immo',timezone.now(),(self.actual_value-self.resteApayer)-(self.actual_value-resteApayer), self.realestate.wallet)
             self.resteApayer = resteApayer
         self.save()
         self.realestate.maj_amount()
@@ -657,8 +653,12 @@ class HistoricalWallet(models.Model):
     # value est le prix*nombre d'actif
     @transaction.atomic
     def NewValue(categorie,date,value,instance,ticker,wallet):
+        if(isinstance(date,str)):
+            date = datetime.strptime(date, "%Y-%m-%d").date()
         date_normalized = date - timedelta(days=date.weekday())
-        while date_normalized < datetime.now().date():
+        if isinstance(date_normalized,datetime):
+            date_normalized = date_normalized.date()
+        while date_normalized < datetime.now().date(): # while date_normalized < datetime.now().date():
             #on séléctionne le prix 
             if Asset_data.objects.filter(ticker=ticker).exists():
                 assetG = Asset_data.objects.get(ticker=ticker)
@@ -727,9 +727,11 @@ class HistoricalWallet(models.Model):
     @transaction.atomic
     def NewPrice(categorie,date,value, wallet):
         #ici je supprime l'ancien prix depuis sa nouvelle mise à jour 
-        if date == None : date = timezone.now().date()
-        print(date)
+        if date == None : 
+            date = timezone.now().date()
         date_normalized = date - timedelta(days=date.weekday())
+        if isinstance(date_normalized,datetime):
+            date_normalized = date_normalized.date()
         while date_normalized < datetime.now().date():
             #on selectionne le HistoricalWallet ou on en créer un 
             historicalWallet = HistoricalWallet.objects.get(wallet=wallet,date = date_normalized)
@@ -798,7 +800,6 @@ A Rajouter :
     Je peux aussi recalculer les dividendes percus : 
     ticker = yf.Ticker("AAPL")  # Par exemple, pour Apple
     dividends = ticker.dividends
-    print(dividends)
     for date, dividend in dividends.items():
     # Par exemple, le calcul des parts supplémentaires en fonction du dividende perçu
     parts = dividend / current_stock_price_on_date

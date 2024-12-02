@@ -1,6 +1,7 @@
+from datetime import datetime
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
-from .models import Buy, Sells, Wallet, Asset, Cash, CashDetail, CryptoDetail, BourseDetail, RealEstateDetail, RealEstate, Categories, HistoricalPrice, Crypto, Bourse, Cash
+from .models import Buy, Sells, Wallet, Asset, Cash, CashDetail, CryptoDetail, BourseDetail, RealEstateDetail, RealEstate, Categories, HistoricalPrice, Crypto, Bourse, Cash, HistoricalWallet, HistoricalBourse, HistoricalCrypto, HistoricalCash,  HistoricalImmo
 from rest_framework.validators import UniqueTogetherValidator
 
 class BuySerializer(ModelSerializer):
@@ -64,34 +65,37 @@ class RealEstateDetailSerializer(ModelSerializer):
         extra_kwargs = {
             'adresse': {'required': False},
             'sell_date': {'required': False},
-            'sell_price': {'required':False},
-            'travaux_value':{'required':False},
-            'other_costs':{'required':False},
-            'notaire_costs':{'required':False},
-            'apport':{'required':False},
-            'destination':{'required':False},
-            'type_rent':{'required':False},
-            'defisc':{'required':False},
-            'loyer_annuel':{'required':False},
-            'charges_annuel':{'required':False},
-            'Taxe':{'required':False},
-            'rate':{'required':False},
-            'duration':{'required':False},
-            'part_own':{'required':False},
+            'sell_price': {'required': False},
+            'travaux_value': {'required': False},
+            'other_costs': {'required': False},
+            'notaire_costs': {'required': False},
+            'apport': {'required': False},
+            'destination': {'required': False},
+            'type_rent': {'required': False},
+            'defisc': {'required': False},
+            'loyer_annuel': {'required': False},
+            'charges_annuel': {'required': False},
+            'Taxe': {'required': False},
+            'rate': {'required': False},
+            'duration': {'required': False},
+            'part_own': {'required': False},
+            'realestate': {'required': False},
+            'type_own': {'required': False},
+            'emprunt_costs': {'required': False},
         }
+    def update(self, instance, validated_data):
+        # Retire ces champs de validated_data pour les ignorer
+        validated_data.pop('actual_value', None)  # None évite les erreurs si la clé est absente
+        validated_data.pop('resteApayer', None)
         
-
-        def update(self, instance, validated_data):
-            # Retire ces champs de validated_data pour les ignorer
-            validated_data.pop('actual_value', None)  # None évite les erreurs si la clé est absente
-            validated_data.pop('resteApayer', None)
-
-            # Met à jour les autres champs comme d'habitude
-            for attr, value in validated_data.items():
-                setattr(instance, attr, value)
-            
-            instance.save()
-            return instance
+        # Convertir les champs datetime en date si nécessaire
+        for attr, value in validated_data.items():
+            if isinstance(value, datetime):
+                value = value.date()  # Conversion de datetime en date
+            setattr(instance, attr, value)
+        
+        instance.save()
+        return instance
 
 class WalletSerializer(ModelSerializer):
     class Meta:
@@ -149,3 +153,32 @@ class HistoriqueSerializer(ModelSerializer):
         fields = '__all__'
         read_only_fields = tuple(HistoricalPrice._meta.get_fields())
 
+class HistoriqueWalletSerializer(ModelSerializer):
+    class Meta:
+        model = HistoricalWallet
+        fields = '__all__'
+        read_only_fields = tuple(HistoricalPrice._meta.get_fields())
+
+class HistoriqueCashSerializer(ModelSerializer):
+    class Meta:
+        model = HistoricalCash
+        fields = '__all__'
+        read_only_fields = tuple(HistoricalPrice._meta.get_fields())
+
+class HistoriqueCryptoSerializer(ModelSerializer):
+    class Meta:
+        model = HistoricalCrypto
+        fields = '__all__'
+        read_only_fields = tuple(HistoricalPrice._meta.get_fields())
+
+class HistoriqueBourseSerializer(ModelSerializer):
+    class Meta:
+        model = HistoricalBourse
+        fields = '__all__'
+        read_only_fields = tuple(HistoricalPrice._meta.get_fields())
+
+class HistoriqueImmoSerializer(ModelSerializer):
+    class Meta:
+        model = HistoricalImmo
+        fields = '__all__'
+        read_only_fields = tuple(HistoricalPrice._meta.get_fields())
