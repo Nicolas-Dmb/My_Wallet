@@ -15,6 +15,7 @@ from datetime import timedelta
 import os
 from dotenv import load_dotenv
 from decouple import config
+import dj_database_url
 
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -149,15 +150,9 @@ AUTH_USER_MODEL = 'User.User'
     )
 }'''
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': config('NAMEDB'),
-        'USER': config('USER'),
-        'PASSWORD': config('PASSWORD'),
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+   'default': dj_database_url.config(default=config('DATABASE_URL', default='postgres://USER:PASSWORD@HOST:PORT/NAME'))
 }
+
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
@@ -247,8 +242,21 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]'''
 
+import django_heroku
+django_heroku.settings(locals())
 
-#Configurer la db 
-#push sur vercel 
-#ajouter un nom de domaine enfant a api trackey
-#heberger l'api en ligne sur vercel
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'DEBUG',  # Change this to DEBUG for more detailed output
+        },
+    },
+}
