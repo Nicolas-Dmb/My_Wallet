@@ -27,9 +27,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+#DEBUG = True
 
-ALLOWED_HOSTS = []
+#configure les domaine pouvant heberger l'api
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1", 
+]
 
 
 # Application definition
@@ -48,10 +52,13 @@ INSTALLED_APPS = [
     "User",
     "Wallet",
     "General",
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -201,6 +208,37 @@ FIXER_KEY = os.getenv("FIXER_KEY")
 #API ChatGpt :
 CHATGPT_KEY = os.getenv("CHATGPT_KEY")
 
-#A supprimer avant de mettre en production
-#USE_TZ = False
-#TIME_ZONE = 'UTC'
+
+CORS_ALLOWED_ORIGINS = [
+   "http://localhost:3000",
+]
+
+#A configurer avant de deployer
+
+SECURE_HSTS_SECONDS = 31536000
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_HSTS_PRELOAD = True
+
+
+#Ancienne config 
+'''
+MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]'''
+
+
+#Configurer la db 
+#push sur vercel 
+#ajouter un nom de domaine enfant a api trackey
+#heberger l'api en ligne sur vercel
