@@ -144,8 +144,8 @@ class RealEstateHistoriqueSerializer(ModelSerializer):
 class RevenuAnnuelImmoSerializer(ModelSerializer):
     class Meta:
         model = RealEstateDetail
-        fields = ['loyer_annuel','adresse','charges_annuel','Taxe','duration','emprunt_costs']
-        read_only_fields = ['loyer_annuel','adresse','charges_annuel','Taxe','duration','emprunt_costs']
+        fields = ['loyer_annuel','adresse','charges_annuel','taxe','duration','emprunt_costs']
+        read_only_fields = ['loyer_annuel','adresse','charges_annuel','taxe','duration','emprunt_costs']
 
 class HistoriqueSerializer(ModelSerializer):
     class Meta:
@@ -182,3 +182,8 @@ class HistoriqueImmoSerializer(ModelSerializer):
         model = HistoricalImmo
         fields = '__all__'
         read_only_fields = tuple(HistoricalPrice._meta.get_fields())
+
+class HistoricalPriceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HistoricalPrice
+        fields = '__all__'  # Inclut tous les champs du modèle

@@ -286,6 +286,7 @@ def RealEstateDetailfixture(api_client,NewRealEstate,ModifRealEstate, register_u
             #Modif
             url = reverse('maj_realEstate', kwargs={'pk': immo.id})
             response = api_client.patch(url,ModifRealEstate[data],format='json')
+            print(response.data)
             assert response.status_code == 200
 
 #Création Buy et Création Sell (API_know)

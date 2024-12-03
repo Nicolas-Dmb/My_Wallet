@@ -27,6 +27,7 @@ class Wallet(models.Model):
             estate = RealEstate.objects.get(wallet=self)
         except: 
             return "erreur lors de la récupération de RealEstate"
+        print(f"passage dans wallet maj {estate.amount}")
         self.amount += estate.amount
         self.save()
 
@@ -527,7 +528,7 @@ class RealEstate(models.Model):
     @transaction.atomic
     def maj_amount(self):
         try :
-            estates = RealEstateDetail.objects.filter(RealEstate=self)
+            estates = RealEstateDetail.objects.filter(realestate=self)
         except:
             return "impossible de récupérer les données"
         self.amount=0
@@ -721,6 +722,8 @@ class HistoricalWallet(models.Model):
                         HistoricalImmo.objects.create(wallet=wallet,date=date_normalized,value=value)
             #date_normalized = date + timedelta(days=(7 - date.weekday()))
             date_normalized += timedelta(weeks=1)
+            if isinstance(date_normalized,datetime):
+                date_normalized = date_normalized.date()
 
     # lors d'un modif prix d'un asset non suivie dont le prix mis à jour est plus ancien qu'une semaine
     # value est la différence entre le nouveau et l'ancien prix * nombre d'actif
@@ -756,6 +759,8 @@ class HistoricalWallet(models.Model):
                     sousHistorique.value += value
                     sousHistorique.save()
             date_normalized = date + timedelta(days=(7 - date.weekday()))
+            if isinstance(date_normalized,datetime):
+                date_normalized = date_normalized.date()
 
 
 

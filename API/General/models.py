@@ -100,8 +100,6 @@ class Asset(models.Model):
             # Vérification de la devise retournée
             currency = data.info.get('currency')
             rate = 1
-            print(f'currency = {currency}')
-            print(f'model currency = {self.currency}')
             if currency != self.currency : 
                 response = Currency.know_rate(base = currency, symbols = self.currency)
                 if response : 
@@ -137,7 +135,6 @@ class Asset(models.Model):
 
             # Supprimer les données supérieures à un an
             OneYearValue.objects.filter(asset=self, date__lt=timezone.now() - timedelta(days=365)).delete()
-
             # Ajouter les données trimestrielles à OldValue
             oldvalues = OldValue.objects.filter(asset=self).latest('date')
             data = yf.download(self.ticker, group_by='column', start=oldvalues.date, end=timezone.now() - timedelta(days=365), interval='3mo')
@@ -148,7 +145,6 @@ class Asset(models.Model):
                 if isinstance(date, datetime):
                     date = date.replace(tzinfo=None)
                     OldValue.objects.create(asset=self, date=date.date(), value=value * rate)
-
             return True
         except Exception as e:
             return f"Erreur lors de la mise à jour de l'actif : {e}"
@@ -300,7 +296,6 @@ class Currency(models.Model):
     @transaction.atomic
     def know_rate(cls, base='EUR', symbols='USD'):
         device_pair = f"{base}/{symbols}"
-        print(device_pair)
         recent_currency = Currency.objects.filter(device=device_pair).first()
         if recent_currency and recent_currency.date > timezone.now() - timedelta(days=1) :
             return True
@@ -326,10 +321,8 @@ class Currency(models.Model):
                     )
                 return True
             else :  
-                print(f"error in request : {response_data}")
                 return False
         except requests.RequestException as e:
-            print(f"error in device : {e}")
             return False
     
     def __str__(self):

@@ -4,6 +4,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from .models import Buy, Sells, Wallet, Asset, CryptoDetail, BourseDetail, Cash, CashDetail, Categories, RealEstate, RealEstateDetail, HistoricalWallet, Bourse, Crypto
 from General.models import Asset as AssetGeneral
+from General.models import OneYearValue, OldValue
 from .serializers import BuySerializer, CryptoDetailSerializer, BourseDetailSerializer, CashDetailSerializer, SellSerializer, AssetSerializer, CashAccountSerializer, RealEstateDetailSerializer
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import generics, views, status
@@ -65,6 +66,9 @@ class BuyView(APIView):
                 buy.new_buy()
         else:
             buy.new_buy()
+        if  AssetGeneral.objects.filter(ticker=data.get("ticker")).exists():
+            OneYearValue.create_OneYearValue(self,data.get("ticker"))
+            OldValue.create_OldValue(self,data.get("ticker") )
         #Gestion des Bourse et CashDetail
         if "cryptoDetail" in data:
             try:
