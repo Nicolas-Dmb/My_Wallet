@@ -32,7 +32,7 @@ SECRET_KEY = config("SECRET_KEY")#os.getenv("SECRET_KEY")
 #DEBUG = True
 
 #configure les domaine pouvant heberger l'api
-ALLOWED_HOSTS = ["127.0.0.1", ".vercel.app", ".now.sh"]
+ALLOWED_HOSTS = ["127.0.0.1",".now.sh"]
 
 
 # Application definition
@@ -87,16 +87,6 @@ TEMPLATES = [
 WSGI_APPLICATION = "API.wsgi.application"
 
 
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -144,15 +134,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = 'User.User'
 
-'''REST_FRAMEWORK = {
+REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
-}'''
-DATABASES = {
-   'default': dj_database_url.config(default=config('DATABASE_URL', default='postgres://USER:PASSWORD@HOST:PORT/NAME'))
 }
-
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
@@ -214,12 +200,26 @@ FIXER_KEY = config("FIXER_KEY")#os.getenv("FIXER_KEY")
 CHATGPT_KEY = config("CHATGPT_KEY")#os.getenv("CHATGPT_KEY")
 
 
+
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_URL = "static/"
+
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
+}
+
+
+
+'''
 CORS_ALLOWED_ORIGINS = [
    "http://localhost:3000",
 ]
 
 #A configurer avant de deployer
-
 SECURE_HSTS_SECONDS = 31536000
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
@@ -228,35 +228,4 @@ SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_HSTS_PRELOAD = True
-
-
-#Ancienne config 
 '''
-MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-]'''
-
-import django_heroku
-django_heroku.settings(locals())
-
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'DEBUG',  # Change this to DEBUG for more detailed output
-        },
-    },
-}
