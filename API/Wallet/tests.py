@@ -8,7 +8,6 @@ import django
 from User.tests import register_user, account_fixture, user_token
 django.setup()
 
-
 User = get_user_model()
 
 # je n'ai pas tester les historical price et historical wallet

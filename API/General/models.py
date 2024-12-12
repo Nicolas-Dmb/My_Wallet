@@ -79,7 +79,7 @@ class Asset(models.Model):
     beta = models.FloatField(null=True, blank=True)  # Beta du fonds
 
     def __str__(self):
-        return f"{self.ticker}/{self.pk}"
+        return f"{self.ticker}"
     
     #ici on fait une requête à l'API pour mettre à jour la valeur de l'actif si plus de 1 jours sans maj
     @transaction.atomic
