@@ -6,7 +6,7 @@ from django.core import mail
 from django.utils import timezone
 from datetime import timedelta
 from django.test import TestCase
-from .models import Setting
+from API.User.models import Setting
 from rest_framework import status
 import django
 django.setup()

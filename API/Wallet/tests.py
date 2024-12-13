@@ -3,9 +3,9 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from .models import Asset, Buy, Sells, Wallet, CryptoDetail, BourseDetail, CashDetail, RealEstate, RealEstateDetail, HistoricalPrice, HistoricalWallet, HistoricalCrypto, HistoricalBourse, HistoricalCash, HistoricalImmo, Bourse, Crypto
+from API.Wallet.models import Asset, Buy, Sells, Wallet, CryptoDetail, BourseDetail, CashDetail, RealEstate, RealEstateDetail, HistoricalPrice, HistoricalWallet, HistoricalCrypto, HistoricalBourse, HistoricalCash, HistoricalImmo, Bourse, Crypto
 import django
-from User.tests import register_user, account_fixture, user_token
+from API.User.tests import register_user, account_fixture, user_token
 django.setup()
 
 User = get_user_model()

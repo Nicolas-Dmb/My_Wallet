@@ -1,8 +1,8 @@
 from django.db import models
 from django.conf import settings
 from django.db import transaction
-from General.models import Asset as Asset_data
-from General.models import OneYearValue, OldValue
+from API.General.models import Asset as Asset_data
+from API.General.models import OneYearValue, OldValue
 from datetime import timedelta, datetime
 from django.utils import timezone
 from django.utils.timezone import now

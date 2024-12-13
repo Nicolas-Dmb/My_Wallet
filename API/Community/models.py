@@ -1,5 +1,5 @@
 from django.db import models
-from User.models import User
+from API.User.models import User
 from django.conf import settings
 from django.db import transaction
 import datetime

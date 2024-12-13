@@ -2,7 +2,7 @@ from django.db import models
 from django.db import transaction
 from django.conf import settings
 import pandas as pd
-from User.models import Setting
+from API.User.models import Setting
 import requests
 import yfinance as yf
 from django.utils import timezone

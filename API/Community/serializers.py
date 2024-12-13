@@ -1,6 +1,6 @@
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
-from .models import Subject, Message, KeyWord, Favori
+from API.Community.models import Subject, Message, KeyWord, Favori
 from rest_framework.validators import UniqueTogetherValidator
 
 

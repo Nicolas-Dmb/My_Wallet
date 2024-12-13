@@ -2,7 +2,7 @@ import pytest
 from rest_framework.test import APIClient
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from .models import Subject, Favori, Message, KeyWord
+from API.Community.models import Subject, Favori, Message, KeyWord
 from rest_framework import status
 from django.core.files.uploadedfile import SimpleUploadedFile
 import os

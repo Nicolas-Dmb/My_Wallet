@@ -4,11 +4,11 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from rest_framework import routers
  
-from User.views import UserViewset, SettingViewset, OTPAPIView, MPOublieAPIView
-from Community.views import SubjectMessagesAPIView, SubjectViewSet, CreateSubjectAPIView, FavoriAPIView, MessageAPIView, GetCreateSubjectAPIView
-from General.views import SearchOtherAssetsAPIView, AssetViewset
-from Wallet.views import BuyView, SellView, MajAsset,CashAccount, RealEstateView, DeleteSellView, DeleteBuyView
-from Wallet.viewsGet import AmountCategories,ListAsset,ListActifPassif, historiqueAchatVente, RevenuAnnuelImmo, MomentumPF, AssetData, PerformanceGlobal
+from API.User.views import UserViewset, SettingViewset, OTPAPIView, MPOublieAPIView
+from API.Community.views import SubjectMessagesAPIView, SubjectViewSet, CreateSubjectAPIView, FavoriAPIView, MessageAPIView, GetCreateSubjectAPIView
+from API.General.views import SearchOtherAssetsAPIView, AssetViewset
+from API.Wallet.views import BuyView, SellView, MajAsset,CashAccount, RealEstateView, DeleteSellView, DeleteBuyView
+from API.Wallet.viewsGet import AmountCategories,ListAsset,ListActifPassif, historiqueAchatVente, RevenuAnnuelImmo, MomentumPF, AssetData, PerformanceGlobal
 
 router = routers.SimpleRouter()
 

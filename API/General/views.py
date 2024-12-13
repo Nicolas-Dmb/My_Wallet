@@ -1,8 +1,8 @@
 from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from .serializers import AssetDetailSerializer, AssetListSerializer, AssetCreateSerializer
-from .models import Asset, OneYearValue, OldValue
+from API.General.serializers import AssetDetailSerializer, AssetListSerializer, AssetCreateSerializer
+from API.General.models import Asset, OneYearValue, OldValue
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import generics, views, status
 from rest_framework.views import APIView

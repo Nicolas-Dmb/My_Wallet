@@ -2,8 +2,8 @@ from django.shortcuts import render
 from django.db import transaction
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from .serializers import UserSerializer, SettingSerializer, PasswordResetSerializer
-from .models import User, Setting
+from API.User.serializers import UserSerializer, SettingSerializer, PasswordResetSerializer
+from API.User.models import User, Setting
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import authentication, exceptions
 from rest_framework import generics, views, status
@@ -14,7 +14,7 @@ import pyotp
 from django.utils import timezone
 from django.conf import settings
 from itsdangerous import URLSafeSerializer
-from Wallet.models import Wallet, Crypto, Bourse, Cash, RealEstate
+from API.Wallet.models import Wallet, Crypto, Bourse, Cash, RealEstate
 
 class UserViewset(ModelViewSet): 
     serializer_class=UserSerializer

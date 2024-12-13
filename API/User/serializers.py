@@ -1,6 +1,6 @@
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
-from .models import User, Setting
+from API.User.models import User, Setting
     
 class SettingSerializer(ModelSerializer): 
     class Meta: 

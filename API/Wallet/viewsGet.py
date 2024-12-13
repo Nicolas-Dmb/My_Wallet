@@ -1,11 +1,11 @@
 from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from .models import Buy, Sells, Wallet, Asset, CryptoDetail, BourseDetail, Cash, CashDetail, Categories, RealEstate, RealEstateDetail, HistoricalPrice,HistoricalWallet, HistoricalCrypto,HistoricalBourse,HistoricalCash,HistoricalImmo, Crypto, Bourse, Cash
-from General.models import Asset as AssetGeneral
-from General.models import OneYearValue,OldValue
-from General.serializers import OneYearValueSerializer,OldValueSerializer
-from .serializers import BuySerializer, CryptoDetailSerializer, BourseDetailSerializer, CashDetailSerializer, SellSerializer, AssetSerializer, CashAccountSerializer, RealEstateDetailSerializer, CryptoCategorieSerializerDetail, BourseCategorieSerializerDetail, CashCategorieSerializerDetail, WalletSerializer, BuyHistoriqueSerializer, SellHistoriqueSerializer, RealEstateHistoriqueSerializer,RevenuAnnuelImmoSerializer, HistoriqueSerializer,HistoriqueWalletSerializer, HistoriqueCashSerializer, HistoriqueBourseSerializer, HistoriqueCryptoSerializer, HistoriqueImmoSerializer,HistoricalPriceSerializer
+from API.Wallet.models import Buy, Sells, Wallet, Asset, CryptoDetail, BourseDetail, Cash, CashDetail, Categories, RealEstate, RealEstateDetail, HistoricalPrice,HistoricalWallet, HistoricalCrypto,HistoricalBourse,HistoricalCash,HistoricalImmo, Crypto, Bourse, Cash
+from API.General.models import Asset as AssetGeneral
+from API.General.models import OneYearValue,OldValue
+from API.General.serializers import OneYearValueSerializer,OldValueSerializer
+from API.Wallet.serializers import BuySerializer, CryptoDetailSerializer, BourseDetailSerializer, CashDetailSerializer, SellSerializer, AssetSerializer, CashAccountSerializer, RealEstateDetailSerializer, CryptoCategorieSerializerDetail, BourseCategorieSerializerDetail, CashCategorieSerializerDetail, WalletSerializer, BuyHistoriqueSerializer, SellHistoriqueSerializer, RealEstateHistoriqueSerializer,RevenuAnnuelImmoSerializer, HistoriqueSerializer,HistoriqueWalletSerializer, HistoriqueCashSerializer, HistoriqueBourseSerializer, HistoriqueCryptoSerializer, HistoriqueImmoSerializer,HistoricalPriceSerializer
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import generics, views, status
 from rest_framework.views import APIView

@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 from django.urls import reverse
 from django.utils import timezone
 from datetime import datetime, timedelta
-from .models import Asset, Currency, OldValue, OneYearValue
+from API.General.models import Asset, Currency, OldValue, OneYearValue
 import yfinance as yf
 import math
 from datetime import datetime

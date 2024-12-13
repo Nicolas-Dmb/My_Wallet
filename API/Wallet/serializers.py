@@ -1,7 +1,7 @@
 from datetime import datetime
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
-from .models import Buy, Sells, Wallet, Asset, Cash, CashDetail, CryptoDetail, BourseDetail, RealEstateDetail, RealEstate, Categories, HistoricalPrice, Crypto, Bourse, Cash, HistoricalWallet, HistoricalBourse, HistoricalCrypto, HistoricalCash,  HistoricalImmo
+from API.Wallet.models import Buy, Sells, Wallet, Asset, Cash, CashDetail, CryptoDetail, BourseDetail, RealEstateDetail, RealEstate, Categories, HistoricalPrice, Crypto, Bourse, Cash, HistoricalWallet, HistoricalBourse, HistoricalCrypto, HistoricalCash,  HistoricalImmo
 from rest_framework.validators import UniqueTogetherValidator
 
 class BuySerializer(ModelSerializer):

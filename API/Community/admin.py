@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Subject, KeyWord, Message, Favori
+from API.Community.models import Subject, KeyWord, Message, Favori
 
 # Register your models here.
 admin.site.register(Subject)

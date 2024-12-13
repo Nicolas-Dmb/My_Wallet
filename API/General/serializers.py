@@ -1,6 +1,6 @@
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
-from .models import Asset, OldValue, OneYearValue, Currency
+from API.General.models import Asset, OldValue, OneYearValue, Currency
 from rest_framework.validators import UniqueTogetherValidator
 
 
