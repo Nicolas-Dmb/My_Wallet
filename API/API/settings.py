@@ -50,11 +50,11 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework_simplejwt",
-    'Strategy',
-    'Community',
-    'User',
-    'Wallet',
-    'General',
+    'API.Strategy',
+    'API.Community',
+    'API.User',
+    'API.Wallet',
+    'API.General',
     'corsheaders',
 ]
 
