@@ -212,8 +212,10 @@ STATIC_URL = "static/"
         "NAME": BASE_DIR / "db.sqlite3",
     }
 }'''
-import dj_database_url  
-DATABASES = dj_database_url.config(conn_max_age=600, ssl_require=True)
+
+DATABASES = {
+   'default': dj_database_url.config(default=config('DATABASE_URL', default=None))
+}
 
 
 DEBUG = True
