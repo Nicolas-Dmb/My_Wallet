@@ -23,6 +23,7 @@ router.register('asset', AssetViewset, basename='asset')
 router.register('cash', CashAccount, basename='cash') #Modifier supprimer ou créer ou récupérer les données de cashDetail
 
 urlpatterns = [
+    path('',include(router.urls)),
     path('api/', include(router.urls)),
     path("admin/", admin.site.urls),
     #user
