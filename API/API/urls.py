@@ -4,7 +4,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from rest_framework import routers
  
-from API.User.views import UserViewset, SettingViewset, OTPAPIView, MPOublieAPIView
+from API.User.views import UserViewset, SettingViewset, OTPAPIView, MPOublieAPIView, getRoutes
 from API.Community.views import SubjectMessagesAPIView, SubjectViewSet, CreateSubjectAPIView, FavoriAPIView, MessageAPIView, GetCreateSubjectAPIView
 from API.General.views import SearchOtherAssetsAPIView, AssetViewset
 from API.Wallet.views import BuyView, SellView, MajAsset,CashAccount, RealEstateView, DeleteSellView, DeleteBuyView
@@ -23,7 +23,7 @@ router.register('asset', AssetViewset, basename='asset')
 router.register('cash', CashAccount, basename='cash') #Modifier supprimer ou créer ou récupérer les données de cashDetail
 
 urlpatterns = [
-    path('',include(router.urls)),
+    path('', getRoutes),
     path('api/', include(router.urls)),
     path("admin/", admin.site.urls),
     #user

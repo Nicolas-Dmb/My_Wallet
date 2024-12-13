@@ -16,6 +16,21 @@ from django.conf import settings
 from itsdangerous import URLSafeSerializer
 from API.Wallet.models import Wallet, Crypto, Bourse, Cash, RealEstate
 
+
+@api_view(['GET'])
+def getRoutes(request):
+    routes =[
+        {
+            'Endpoint':'api/filecopro',
+            'method':'POST',
+            'body': 'file',
+            'description': 'Send many copropriete in one time',
+        },
+        
+    ]
+    return Response(routes)
+
+
 class UserViewset(ModelViewSet): 
     serializer_class=UserSerializer
 
