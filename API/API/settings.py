@@ -32,7 +32,7 @@ SECRET_KEY = config("SECRET_KEY")#os.getenv("SECRET_KEY")
 #DEBUG = True
 
 #configure les domaine pouvant heberger l'api
-ALLOWED_HOSTS = ["127.0.0.1",".now.sh"]
+ALLOWED_HOSTS = ["127.0.0.1",".now.sh",'https://mywalletapi-502906a76c4f.herokuapp.com/']
 
 
 # Application definition
@@ -124,7 +124,8 @@ USE_TZ = True
 
 
 STATIC_URL = "/static/"
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+#STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -205,12 +206,14 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATIC_URL = "static/"
 
 
-DATABASES = {
+'''DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
     }
-}
+}'''
+import dj_database_url  
+DATABASES = dj_database_url.config(conn_max_age=600, ssl_require=True)
 
 
 DEBUG = True
