@@ -32,7 +32,12 @@ SECRET_KEY = config("SECRET_KEY")#os.getenv("SECRET_KEY")
 #DEBUG = True
 
 #configure les domaine pouvant heberger l'api
-ALLOWED_HOSTS = ["127.0.0.1",".now.sh",'https://mywalletapi-502906a76c4f.herokuapp.com/']
+ALLOWED_HOSTS = [
+    "127.0.0.1",  
+    "localhost",
+    ".herokuapp.com", 
+    "mywalletapi-502906a76c4f.herokuapp.com", 
+]
 
 
 # Application definition
