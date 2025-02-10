@@ -9,10 +9,10 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+DEBUG =  config("DEBUG", default="False")
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY") if DEBUG else config("SECRET_KEY")
+SECRET_KEY = config("SECRET_KEY")
 
 #configure les domaine pouvant heberger l'api
 ALLOWED_HOSTS = [
@@ -174,22 +174,22 @@ EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 EMAIL_HOST = 'smtp.hostinger.com'
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'securite@trackey.fr'
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD") if DEBUG else config("EMAIL_HOST_PASSWORD")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'securite@trackey.fr'
 
 #API Fixer :
-FIXER_KEY = os.getenv("FIXER_KEY") if DEBUG else config("FIXER_KEY")
+FIXER_KEY = config("FIXER_KEY")
 #API ChatGpt :
-CHATGPT_KEY = os.getenv("CHATGPT_KEY") if DEBUG else config("CHATGPT_KEY")
+CHATGPT_KEY = config("CHATGPT_KEY")
 
 if DEBUG:
     DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DBNAME'),
-        'USER': os.getenv('DBUSER'),
-        'PASSWORD': os.getenv('DBPASSWORD'),
+        'NAME': config('DBNAME'),
+        'USER': config('DBUSER'),
+        'PASSWORD': config('DBPASSWORD'),
         'HOST': 'localhost',
         'PORT': '5432',
     }
