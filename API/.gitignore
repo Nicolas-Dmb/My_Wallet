@@ -1,7 +1,0 @@
-ENV/
-API/.env
-API/__pycache__/
-API/.pytest_cache/
-API/API/__pycache__/
-API/General/__pycache__/
-API/General/migrations/
