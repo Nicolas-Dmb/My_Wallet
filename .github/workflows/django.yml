@@ -69,6 +69,7 @@ jobs:
 
     - name: Run Tests
       env:
+        DEBUG: True
         SECRET_KEY: ${{ secrets.SECRET_KEY }}
         EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
         CHATGPT_KEY: ${{ secrets.CHATGPT_KEY }}
