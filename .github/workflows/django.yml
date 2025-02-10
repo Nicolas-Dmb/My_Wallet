@@ -40,6 +40,11 @@ jobs:
         pip install -r test_requirements.txt
 
     - name: Run Tests
+      env:
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+        CHATGPT_KEY: ${{ secrets.CHATGPT_KEY }}
       run: |
         pytest --cov=. --cov-report=xml
 
