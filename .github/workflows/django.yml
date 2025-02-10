@@ -12,6 +12,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: github_user
+          POSTGRES_PASSWORD: github_password
+          POSTGRES_DB: github_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U github_user"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     strategy:
       max-parallel: 4
       matrix:
@@ -39,12 +54,25 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r test_requirements.txt
 
+    - name: Wait for PostgreSQL
+      run: |
+        until pg_isready -h localhost -p 5432 -U github_user; do
+          echo "Waiting for PostgreSQL..."
+          sleep 5
+        done
+
+    - name: Set up DB and environment
+      env:
+        DATABASE_URL: postgres://github_user:github_password@localhost:5432/github_test_db
+      run: |
+        python manage.py migrate
+
     - name: Run Tests
       env:
         SECRET_KEY: ${{ secrets.SECRET_KEY }}
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
         EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
         CHATGPT_KEY: ${{ secrets.CHATGPT_KEY }}
+        DATABASE_URL: postgres://github_user:github_password@localhost:5432/github_test_db
       run: |
         pytest --cov=. --cov-report=xml
 
