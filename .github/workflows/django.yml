@@ -2,29 +2,106 @@ name: Django CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: prod
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: github_user
+          POSTGRES_PASSWORD: github_password
+          POSTGRES_DB: github_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U github_user"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 20
+
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: [3.10.12]
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}
+          ${{ runner.os }}-pip-
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    - name: Run Tests
+        pip install -r test_requirements.txt
+
+    - name: Wait for PostgreSQL
       run: |
-        python manage.py test
+        until pg_isready -h localhost -p 5432 -U github_user; do
+          echo "Waiting for PostgreSQL to be ready..."
+          sleep 5
+        done
+        echo "PostgreSQL is ready!"
+        sleep 5 
+    - name: Debug PostgreSQL logs
+      run: |
+        docker logs $(docker ps -q --filter "ancestor=postgres:13")
+    - name: check if all config is ok
+      run : |
+        pip show python-decouple
+        echo "SECRET_KEY is: ${{ secrets.SECRET_KEY }}"
+    - name: Check SECRET_KEY in Python
+      env:
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      run: |
+        python -c "import os; print(f'SECRET_KEY is: {os.getenv(\"SECRET_KEY\")[:5]}*****')"
+    - name: Set up DB and environment
+      env:
+        DBNAME: github_test_db
+        DBUSER: github_user
+        DBPASSWORD: github_password
+        DEBUG: "true"
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+        CHATGPT_KEY: ${{ secrets.CHATGPT_KEY }}
+      run: |
+        python manage.py makemigrations
+        python manage.py migrate
+    - name: Run Tests
+      env:
+        DEBUG: "true"
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+        CHATGPT_KEY: ${{ secrets.CHATGPT_KEY }}
+        DBNAME: github_test_db
+        DBUSER: github_user
+        DBPASSWORD: github_password
+      run: |
+        pytest --cov=. --cov-report=xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: coverage.xml
+        flags: unittests
+        name: codecov-report
