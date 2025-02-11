@@ -87,6 +87,8 @@ jobs:
       run: |
         python manage.py makemigrations
         python manage.py migrate
+    - name: Show applied migrations
+      run: python manage.py showmigrations
     - name: Run Tests
       env:
         DEBUG: "true"
