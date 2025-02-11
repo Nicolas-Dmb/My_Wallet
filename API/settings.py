@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 from decouple import config
 import dj_database_url
+import logging
 
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -224,3 +225,44 @@ if not DEBUG :
     CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^http://localhost:\d+$", 
     ]
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG', 
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'my_custom_logger': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+
+LOGGING['root']['level'] = 'INFO'
+LOGGING['loggers']['django']['level'] = 'INFO'
+
+logger = logging.getLogger('django')
+logger.info(f'DEBUG mode is set to {DEBUG}')
