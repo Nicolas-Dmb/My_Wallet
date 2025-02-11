@@ -70,6 +70,11 @@ jobs:
       run : |
         pip show python-decouple
         echo "SECRET_KEY is: ${{ secrets.SECRET_KEY }}"
+    - name: Check SECRET_KEY in Python
+      env:
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      run: |
+        python -c "import os; print(f'SECRET_KEY is: {os.getenv(\"SECRET_KEY\")[:5]}*****')"
     - name: Set up DB and environment
       env:
         DATABASE_URL: postgres://github_user:github_password@localhost:5432/github_test_db
