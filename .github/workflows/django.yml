@@ -60,11 +60,6 @@ jobs:
           echo "Waiting for PostgreSQL..."
           sleep 5
         done
-    - name: Cache pip
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: cache-key
     - name: Debug all environment variables
       run: env
     - name: Set up DB and environment
