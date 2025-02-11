@@ -61,11 +61,13 @@ jobs:
           echo "Waiting for PostgreSQL to be ready..."
           sleep 5
         done
-    - name: Debug all environment variables
-      run: env
     - name: Set up DB and environment
       env:
         DATABASE_URL: postgres://github_user:github_password@localhost:5432/github_test_db
+        DEBUG: "true"
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+        CHATGPT_KEY: ${{ secrets.CHATGPT_KEY }}
       run: |
         python manage.py migrate
 
