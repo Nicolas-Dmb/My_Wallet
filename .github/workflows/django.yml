@@ -70,7 +70,7 @@ jobs:
       env:
         DATABASE_URL: postgres://github_user:github_password@localhost:5432/github_test_db
         DEBUG: "true"
-        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        SECRET_KEY: $SECRET_KEY
         EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
         CHATGPT_KEY: ${{ secrets.CHATGPT_KEY }}
       run: |
