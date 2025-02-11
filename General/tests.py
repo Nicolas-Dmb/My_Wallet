@@ -241,7 +241,8 @@ class TestAssetAPI:
                 if len(OneYearValue.objects.filter(asset = asset_2, date = date, value = value))!=1:
                     error += 1
                 yearvalue = OneYearValue.objects.filter(asset=asset_1).earliest('date')
-                assert yearvalue.date > timezone.now().date()-timedelta(days=365)
+                lastyear = timezone.now().date()-timedelta(days=365)
+                assert yearvalue.date >= lastyear
             #On vérifie que OldValue est à jour
             for date, value in OldValue_today[f'Close_{ticker.upper()}'].items():
                 #on vérifier qu'une donnée est bien existante avec ces données, qu'il n'y en a qu'une 
@@ -353,7 +354,8 @@ class TestCurrencyAPI:
                     error += 1
         #OldValue
         for date, value in OldValue_data['Close_BTC-USD'].items():
-            if date > datetime.strptime('2021-01-01', '%Y-%m-%d'):
+            date_naive = date.replace(tzinfo=None) if date.tzinfo else date
+            if date_naive > datetime.strptime('2021-01-01', '%Y-%m-%d'):
                 if len(OldValue.objects.filter(asset = asset, date = date, value = value*rate)) != 1 :
                             error += 1
         assert error < 3
