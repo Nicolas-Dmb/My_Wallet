@@ -60,11 +60,13 @@ jobs:
           echo "Waiting for PostgreSQL..."
           sleep 5
         done
-    - name: Debug environment variables
-      run: |
-        echo "SECRET_KEY is: $SECRET_KEY"
-      env:
-        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: cache-key
+    - name: Debug all environment variables
+      run: env
     - name: Set up DB and environment
       env:
         DATABASE_URL: postgres://github_user:github_password@localhost:5432/github_test_db
