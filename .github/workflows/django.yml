@@ -77,7 +77,9 @@ jobs:
         python -c "import os; print(f'SECRET_KEY is: {os.getenv(\"SECRET_KEY\")[:5]}*****')"
     - name: Set up DB and environment
       env:
-        DATABASE_URL: postgres://github_user:github_password@localhost:5432/github_test_db
+        DBNAME: github_test_db
+        DBUSER: github_user
+        DBPASSWORD: github_password
         DEBUG: "true"
         SECRET_KEY: ${{ secrets.SECRET_KEY }}
         EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
