@@ -66,6 +66,10 @@ jobs:
     - name: Debug PostgreSQL logs
       run: |
         docker logs $(docker ps -q --filter "ancestor=postgres:13")
+    - name: check if all config is ok
+      run : |
+        pip show python-decouple
+        echo "SECRET_KEY is: $SECRET_KEY"
     - name: Set up DB and environment
       env:
         DATABASE_URL: postgres://github_user:github_password@localhost:5432/github_test_db
