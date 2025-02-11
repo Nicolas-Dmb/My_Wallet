@@ -85,8 +85,8 @@ jobs:
         EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
         CHATGPT_KEY: ${{ secrets.CHATGPT_KEY }}
       run: |
+        python manage.py makemigrations
         python manage.py migrate
-
     - name: Run Tests
       env:
         DEBUG: "true"
