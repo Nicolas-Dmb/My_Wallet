@@ -93,7 +93,9 @@ jobs:
         SECRET_KEY: ${{ secrets.SECRET_KEY }}
         EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
         CHATGPT_KEY: ${{ secrets.CHATGPT_KEY }}
-        DATABASE_URL: postgres://github_user:github_password@localhost:5432/github_test_db
+        DBNAME: github_test_db
+        DBUSER: github_user
+        DBPASSWORD: github_password
       run: |
         pytest --cov=. --cov-report=xml
 
