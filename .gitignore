@@ -3,21 +3,17 @@ __pycache__/
 .pytest_cache/
 .env
 .DS_Store
+env/
 
 
 API/__pycache__/
 
 General/__pycache__/
-General/migrations/*
 
 Community/__pycache__/
-Community/migrations/*
 
 Strategy/__pycache__/
-Strategy/migrations/*
 
 User/__pycache__/
-User/migrations/*
 
 Wallet/__pycache__/
-Wallet/migrations/*
