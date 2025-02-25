@@ -5,13 +5,13 @@
 
 ## Comment lancer l'API 
 ### Télécharger le code et ses dependances
-'''Bash
+```bash
 git clone git@github.com:Nicolas-Dmb/My_Wallet.git
 cd cd My_Wallet
 python -m venv env
 source env/bin/activate
 pip install -r requirements.txt
-'''
+```
 ### implémenter le fichier .env 
 Le fichier .env_exemple regroupe l'ensemble des données à intégrer dans le fichier .env, il vous faudra : 
     - une clé API de chatGPT 
