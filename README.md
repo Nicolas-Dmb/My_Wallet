@@ -14,7 +14,7 @@ pip install -r requirements.txt
 ```
 ### implémenter le fichier .env 
 Le fichier .env_exemple regroupe l'ensemble des données à intégrer dans le fichier .env, il vous faudra : 
-    - une clé API de chatGPT 
-    - générer clé pour FIXER_KEY et SECRET_KEY
-    - configurer une Adresse SMTP, remplacer les informations nécessaires dans settings.py puis ajouter le mot de passe dans le fichier .env 
-    - configurer une base de données SQL comme postgres 
+    -une clé API de chatGPT 
+    -générer clé pour FIXER_KEY et SECRET_KEY
+    -configurer une Adresse SMTP, remplacer les informations nécessaires dans settings.py puis ajouter le mot de passe dans le fichier .env 
+    -configurer une base de données SQL comme postgres 
