@@ -37,8 +37,6 @@ class UserSerializer(serializers.ModelSerializer):
         user = self.instance
         if 'username' in data and User.objects.filter(username=data['username']).exclude(id=user.id if user else None).exists():
             raise serializers.ValidationError('Username already exists.')
-        if 'phone' in data and User.objects.filter(phone=data['phone']).exclude(id=user.id if user else None).exists():
-            raise serializers.ValidationError('Phone number already exists.')
         if 'email' in data and User.objects.filter(email=data['email']).exclude(id=user.id if user else None).exists():
             raise serializers.ValidationError('E-Mail already exists.')
 
