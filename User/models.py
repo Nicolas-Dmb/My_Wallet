@@ -12,7 +12,7 @@ def default_otp_time():
 class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4,unique=True)
     email = models.EmailField(unique=True)
-    phone = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
     country = models.CharField(max_length=100, blank=True)
     job = models.CharField(max_length=100, blank=True)
     income = models.CharField(max_length=100, blank=True)

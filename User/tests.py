@@ -203,7 +203,6 @@ class TestUserAPI:
         assert response.status_code == 200
         data = response.data
         access_token = data['access']
-
         assert access_token != old_access_token
 
     def test_setting_user(self, api_client, register_user, user_token, setting_fixture):
@@ -222,7 +221,6 @@ class TestUserAPI:
         url = reverse('setting-detail', kwargs={'pk': setting.pk})
         api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + access_token)
         response = api_client.patch(url, setting_fixture, format='json')
-        print(response.data)
         assert response.status_code == 200
         setting = Setting.objects.get(user=user.pk) 
         assert setting.color == 'Gray'
@@ -621,9 +619,7 @@ class TestfailUserAPI:
                 user = User.objects.get(username=user_data['username'])
                 assert user.username == user_data['username']
             else : 
-                print(key)
-                print(response)
-                assert response.status_code == 400
+                assert response.status_code  == 400 
 
     # on s'assure ici que l'user ne peut accéder qu'à ses informations et non à tous les users. 
     def test_only_one_user(self, api_client, failes_user):
