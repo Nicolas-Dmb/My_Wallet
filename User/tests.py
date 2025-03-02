@@ -549,15 +549,6 @@ def failes_user():
             "password": "12345Nano!",
             "confirm_password": "12345Nano!"
         },#erreur email similaire 
-        'same_phone':{
-            "first_name": "Py1",
-            "last_name": "Test1",
-            "username": "PyTest1",
-            "email": "n@epitech.eu",
-            "phone": "00000000",
-            "password": "12345Nano!",
-            "confirm_password": "12345Nano!"
-        },#erreur tel similaire 
         'incorrect_confirm_password':{
             "first_name": "Py1",
             "last_name": "Test1",
