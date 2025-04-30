@@ -46,7 +46,7 @@ class AssetDetailSerializer(ModelSerializer):
 class AssetListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Asset
-        fields = ['ticker', 'company', 'type', 'country']
+        fields = ['ticker', 'company', 'type', 'country', 'category']
 
 class AssetCreateSerializer(serializers.ModelSerializer):
     class Meta:
