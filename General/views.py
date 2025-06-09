@@ -30,8 +30,9 @@ client = OpenAI(api_key=settings.CHATGPT_KEY)
 "une vue en liste qui permet de rechercher dans asset" 
 "une requete qui permet de rechercher dans yfinance elle permet de créer de nouveaux assets et à l'user de rechercher de nouveaux assets"
 
-def get_ticker(info):
-
+def get_ticker(info,category):
+    if(category == 'all'):
+        category = 'stock and cryptocurrency',
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",  
@@ -39,7 +40,7 @@ def get_ticker(info):
                 {"role": "system", "content": "You are an assistant that helps find tickers for assets listed on yfinance."},
                 {
                     "role": "user",
-                    "content": f"Find the ticker(s) in yfinance corresponding to this information(s): '{info}'. The information can refer to stocks, indices, ETFs, or cryptocurrencies, companys, ISIN and can be right in english or french. If no ticker matches, return 'false'. If multiple tickers match, return them separated by '/'. Only provide the tickers listed in yfinance without any additional information."
+                    "content": f"Find the ticker(s) in yfinance corresponding to this information(s): '{info}' and this category of assets '{category}'. The information can refer to stocks, indices, ETFs, or cryptocurrencies, companys, ISIN and can be right in english or french. If no ticker matches, return 'false'. If multiple tickers match, return them separated by '/'. Only provide the tickers listed in yfinance without any additional information."
                 }
                 ],
             max_tokens=50, 
@@ -152,12 +153,14 @@ class AssetViewset(ModelViewSet):
 # qui ne sont pas encore enregistrés dans Asset
 class SearchOtherAssetsAPIView(APIView):
 
-    def get(self, request, name=None, format=None):
+    def get(self, request, name=None,category=None, format=None):
         name = name.upper()
         if not name:
             return Response({'error': 'le paramètre name est nécessaire'}, status=status.HTTP_400_BAD_REQUEST)
-
-        tickers = get_ticker(name)
+        category = category.upper()
+        if not category:
+            return Response({'error': 'le paramètre category est nécessaire'}, status=status.HTTP_400_BAD_REQUEST)
+        tickers = get_ticker(name,category)
         if not tickers :
             tickers = name
         if isinstance(tickers, str):
