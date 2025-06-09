@@ -293,7 +293,7 @@ class TestSearchAPI:
         keywords = [
             'Google-Tesla','Amazon','S&P 500','FTSE 100','Nikkei']
         for keyword in keywords :
-                url = reverse('search_other_assets', args=[keyword])
+                url = reverse('search_other_assets', args=[keyword,'all'])
                 response = api_client.get(url, format='json')
                 print(f'{keyword}:{response.status_code}')
                 assert response.status_code == 200

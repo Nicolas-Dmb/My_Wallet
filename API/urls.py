@@ -39,7 +39,7 @@ urlpatterns = [
     path('api/community/send/<int:subject_id>/message/', MessageAPIView.as_view(), name='send_message'),
     path('api/community/ownsubjects/', GetCreateSubjectAPIView.as_view(), name='own-subjects'),
     #General
-    path('api/general/<str:name>/', SearchOtherAssetsAPIView.as_view(), name='search_other_assets'),
+    path('api/general/<str:name>/<str:category>/', SearchOtherAssetsAPIView.as_view(), name='search_other_assets'),
     #Wallet 
     path('api/wallet/buy/', BuyView.as_view(), name='buy_asset'), #POST Crypto et Bourse
     path('api/wallet/sell/', SellView.as_view(), name='sell_asset'), #POST Crypto et Bourse
