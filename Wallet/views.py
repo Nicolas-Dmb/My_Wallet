@@ -339,10 +339,5 @@ class RealEstateView(APIView):
         except Exception as e:
             return Response({"error":f"Impossible de mettre à jour les données : {e}"}, status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_200_OK)
-    
-
-
-
-    
 
     

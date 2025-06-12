@@ -5,6 +5,7 @@ from Wallet.models import Buy, Sells, Wallet, Asset, CryptoDetail, BourseDetail,
 from General.models import Asset as AssetGeneral
 from General.models import OneYearValue,OldValue
 from General.serializers import OneYearValueSerializer,OldValueSerializer
+from Wallet.search.real_estate import SearchRealEstate
 from Wallet.serializers import BuySerializer, CryptoDetailSerializer, BourseDetailSerializer, CashDetailSerializer, SellSerializer, AssetSerializer, CashAccountSerializer, RealEstateDetailSerializer, CryptoCategorieSerializerDetail, BourseCategorieSerializerDetail, CashCategorieSerializerDetail, WalletSerializer, BuyHistoriqueSerializer, SellHistoriqueSerializer, RealEstateHistoriqueSerializer,RevenuAnnuelImmoSerializer, HistoriqueSerializer,HistoriqueWalletSerializer, HistoriqueCashSerializer, HistoriqueBourseSerializer, HistoriqueCryptoSerializer, HistoriqueImmoSerializer,HistoricalPriceSerializer
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import generics, views, status
@@ -493,3 +494,32 @@ class PerformanceGlobal(APIView):
                 datas =HistoricalImmo.objects.filter(wallet=wallet).order_by('-date')
                 datas = HistoriqueImmoSerializer(instance = datas, many=True)
         return Response(datas.data, status=status.HTTP_200_OK)
+
+
+
+class SearchView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        userInput =  self.kwargs.get('input')
+        category = self.kwargs.get('category')
+        wallet = Wallet.objects.get(user=request.user)
+
+        data = []
+        match category:
+            case 'crypto':
+                # TODO
+            case 'bourse':
+                # TODO
+            case 'cash':
+                # TODO
+            case 'immo':
+                data = SearchRealEstate.get(input=userInput, wallet=wallet)
+            case 'all':
+                # TODO
+            case _: 
+                return Response({'error':'category unavailable'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        return Response(data, status=status.HTTP_200_OK)
+
+

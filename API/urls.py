@@ -40,7 +40,8 @@ urlpatterns = [
     path('api/community/ownsubjects/', GetCreateSubjectAPIView.as_view(), name='own-subjects'),
     #General
     path('api/general/<str:name>/<str:category>/', SearchOtherAssetsAPIView.as_view(), name='search_other_assets'),
-    #Wallet 
+    #Wallet
+    path('api/wallet/search/<str:input>/<str:category>/', SearchView.as_view(), name='search'), # permet de simplifier la recherche d'actif
     path('api/wallet/buy/', BuyView.as_view(), name='buy_asset'), #POST Crypto et Bourse
     path('api/wallet/sell/', SellView.as_view(), name='sell_asset'), #POST Crypto et Bourse
     path('api/wallet/delete/buy/<int:pk>/', DeleteBuyView.as_view(), name='delete_buy'), #Delete Buy
