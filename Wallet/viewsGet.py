@@ -6,6 +6,7 @@ from General.models import Asset as AssetGeneral
 from General.models import OneYearValue,OldValue
 from General.serializers import OneYearValueSerializer,OldValueSerializer
 from Wallet.search.real_estate import SearchRealEstate
+from Wallet.search.stock import SearchStock
 from Wallet.serializers import BuySerializer, CryptoDetailSerializer, BourseDetailSerializer, CashDetailSerializer, SellSerializer, AssetSerializer, CashAccountSerializer, RealEstateDetailSerializer, CryptoCategorieSerializerDetail, BourseCategorieSerializerDetail, CashCategorieSerializerDetail, WalletSerializer, BuyHistoriqueSerializer, SellHistoriqueSerializer, RealEstateHistoriqueSerializer,RevenuAnnuelImmoSerializer, HistoriqueSerializer,HistoriqueWalletSerializer, HistoriqueCashSerializer, HistoriqueBourseSerializer, HistoriqueCryptoSerializer, HistoriqueImmoSerializer,HistoricalPriceSerializer
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import generics, views, status
@@ -510,7 +511,7 @@ class SearchView(APIView):
             case 'crypto':
                 # TODO
             case 'bourse':
-                # TODO
+                data = SearchStock.get(input=userInput, wallet=wallet)
             case 'cash':
                 # TODO
             case 'immo':
