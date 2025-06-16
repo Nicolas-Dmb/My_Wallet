@@ -20,7 +20,7 @@ class SearchRealEstate:
     def _find(cls, input:str,realestate:RealEstate)-> Iterable[RealEstateDetail]:
         return RealEstateDetail.objects.filter(realestate=realestate).annotate(
             similarity=TrigramSimilarity('adresse', input)
-        ).filter(similarity__gt=0.3)
+        ).filter(similarity__gt=0.3).order_by('-similarity')
     
     @classmethod
     def _toSearchModel(cls,realEstateDetail:RealEstateDetail)-> SearchModel:
