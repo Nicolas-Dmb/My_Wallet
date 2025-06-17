@@ -7,7 +7,7 @@ class SearchModel:
     id: UUID
     type: type
     name: str
-    key: str 
+    key: str|None
     amount: float
     owned: bool
     other: str|None

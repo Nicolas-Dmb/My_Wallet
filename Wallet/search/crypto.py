@@ -19,8 +19,7 @@ class SearchCrypto:
         return Asset.objects.filter(category='Crypto').annotate(
             similarity=(
             TrigramSimilarity('ticker', input) +
-            TrigramSimilarity('company', input) +
-            TrigramSimilarity('isin_code', input)
+            TrigramSimilarity('company', input)
         )
         ).filter(similarity__gt=0.3).order_by('-similarity')
     
@@ -37,5 +36,5 @@ class SearchCrypto:
             key = crypto.ticker,
             amount = crypto.last_value,
             owned = cls._isOwned(crypto, wallet),
-            other = crypto.country,
+            other = crypto.sector,
         )

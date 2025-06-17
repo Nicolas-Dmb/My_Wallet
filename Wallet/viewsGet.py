@@ -5,6 +5,7 @@ from Wallet.models import Buy, Sells, Wallet, Asset, CryptoDetail, BourseDetail,
 from General.models import Asset as AssetGeneral
 from General.models import OneYearValue,OldValue
 from General.serializers import OneYearValueSerializer,OldValueSerializer
+from Wallet.search.cash import SearchCash
 from Wallet.search.crypto import SearchCrypto
 from Wallet.search.real_estate import SearchRealEstate
 from Wallet.search.stock import SearchStock
@@ -514,11 +515,16 @@ class SearchView(APIView):
             case 'bourse':
                 data = SearchStock.get(input=userInput, wallet=wallet)
             case 'cash':
-                # TODO
+                data = SearchCash.get(input=userInput, wallet=wallet)
             case 'immo':
                 data = SearchRealEstate.get(input=userInput, wallet=wallet)
             case 'all':
-                # TODO
+                data = (
+                    list(SearchCrypto.get(input=userInput, wallet=wallet)) +
+                    list(SearchStock.get(input=userInput, wallet=wallet)) +
+                    list(SearchCash.get(input=userInput, wallet=wallet)) +
+                    list(SearchRealEstate.get(input=userInput, wallet=wallet))
+                )
             case _: 
                 return Response({'error':'category unavailable'}, status=status.HTTP_401_UNAUTHORIZED)
         
