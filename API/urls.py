@@ -8,7 +8,7 @@ from User.views import UserViewset, SettingViewset, OTPAPIView, MPOublieAPIView,
 from Community.views import SubjectMessagesAPIView, SubjectViewSet, CreateSubjectAPIView, FavoriAPIView, MessageAPIView, GetCreateSubjectAPIView
 from General.views import SearchOtherAssetsAPIView, AssetViewset
 from Wallet.views import BuyView, SellView, MajAsset,CashAccount, RealEstateView, DeleteSellView, DeleteBuyView
-from Wallet.viewsGet import AmountCategories,ListAsset,ListActifPassif, historiqueAchatVente, RevenuAnnuelImmo, MomentumPF, AssetData, PerformanceGlobal
+from Wallet.viewsGet import AmountCategories,ListAsset,ListActifPassif, SearchView, historiqueAchatVente, RevenuAnnuelImmo, MomentumPF, AssetData, PerformanceGlobal
 
 router = routers.SimpleRouter()
 

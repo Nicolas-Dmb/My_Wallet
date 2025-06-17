@@ -17,3 +17,4 @@ numpy==2.0.2
 openai==1.57.2
 iniconfig==2.0.0
 itsdangerous==2.2.0
+pytest-mock==3.14.1

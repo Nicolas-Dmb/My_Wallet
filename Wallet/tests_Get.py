@@ -169,15 +169,3 @@ class TestGet:
         datas = response.data
         assert len(datas) == historiqueAll.count()
         #assert len(datas)==7 # C'est le nom de nouvelle données que j'ai envoyé dans tests
-
-
-        
-
-#Obtenir le montant des categories
-#Obtenir la list des assets
-#Obtenir la liste Actif/Passif
-#Obtenir les revenus annualisés de l'immo
-#Obtenir les données propre à un Asset
-#Obtenir le Momentum
-#Obtenir l'historique des transactions
-#Obtenir les historiques de All, Crypto, Bourse, Cash ou Immo,
