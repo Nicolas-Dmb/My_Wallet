@@ -5,6 +5,7 @@ from Wallet.models import Buy, Sells, Wallet, Asset, CryptoDetail, BourseDetail,
 from General.models import Asset as AssetGeneral
 from General.models import OneYearValue,OldValue
 from General.serializers import OneYearValueSerializer,OldValueSerializer
+from Wallet.search.crypto import SearchCrypto
 from Wallet.search.real_estate import SearchRealEstate
 from Wallet.search.stock import SearchStock
 from Wallet.serializers import BuySerializer, CryptoDetailSerializer, BourseDetailSerializer, CashDetailSerializer, SellSerializer, AssetSerializer, CashAccountSerializer, RealEstateDetailSerializer, CryptoCategorieSerializerDetail, BourseCategorieSerializerDetail, CashCategorieSerializerDetail, WalletSerializer, BuyHistoriqueSerializer, SellHistoriqueSerializer, RealEstateHistoriqueSerializer,RevenuAnnuelImmoSerializer, HistoriqueSerializer,HistoriqueWalletSerializer, HistoriqueCashSerializer, HistoriqueBourseSerializer, HistoriqueCryptoSerializer, HistoriqueImmoSerializer,HistoricalPriceSerializer
@@ -509,7 +510,7 @@ class SearchView(APIView):
         data = []
         match category:
             case 'crypto':
-                # TODO
+                data = SearchCrypto.get(input=userInput, wallet=wallet)
             case 'bourse':
                 data = SearchStock.get(input=userInput, wallet=wallet)
             case 'cash':
